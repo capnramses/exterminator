@@ -1,6 +1,6 @@
 # uncomment for debug build
 G = -g
-F = -O0 -Wall -pedantic -fmessage-length=78 -m64
+F = -std=c99 -O0 -Wall -pedantic -fmessage-length=78 -m64
 
 # uncomment for profiling build
 #PG = -pg 

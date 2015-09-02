@@ -17,6 +17,12 @@ ncursesw "wide" lib for wchars
 menus library
 */
 
+typedef struct Code_Line Code_Line;
+struct Code_Line {
+	size_t offset;
+	int cols;
+};
+
 WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
 	// note backwards x,y convention
 	WINDOW* win = newwin (h, w, yi, xi);
@@ -41,6 +47,80 @@ void wipe_win (WINDOW* win) {
 int main () {
 
 	setlocale (LC_ALL, "");
+	
+	
+	
+	
+	
+	int code_lc = 0;
+	int code_max_col = 0;
+	size_t code_sz = 0;
+	char* code_buff = NULL;
+	{ // read entire file into buffer
+		FILE* f = fopen ("src/main.c", "r");
+		fseek (f, 0, SEEK_END);
+		code_sz = ftell (f);
+		rewind (f);
+		code_buff = (char*)malloc (code_sz + 1);
+		assert (code_buff);
+		size_t result = fread (code_buff, 1, code_sz, f);
+		assert (result == code_sz);
+		code_buff[code_sz] = '\0';
+		fclose (f);
+	}
+	
+	{ // count lines in file
+		for (size_t i = 0; i < code_sz; i++) {
+			if (code_buff[i] == '\n' || code_buff[i] == '\0') {
+				code_lc++;
+			}
+		}
+	}
+	Code_Line* lines_meta = NULL;
+	lines_meta = (Code_Line*)malloc (code_lc * sizeof (Code_Line));
+	{ // lines format and cols count
+		int col = 0;
+		size_t next_offs = 0;
+		int l = 0;
+		for (size_t i = 0; i < code_sz; i++) {
+			col++;
+			if (code_buff[i] == '\n' || code_buff[i] == '\0') {
+				lines_meta[l].cols = col;
+				lines_meta[l].offset = next_offs;
+				next_offs = i;
+				l++;
+				col = 0;
+			}
+			if (code_buff[i] == '\t') {
+				col++;
+			}
+			if (col > code_max_col) {
+				code_max_col = col;
+			}
+		}//for
+	}//block
+	//printf ("cols %i rows %i sz %lu\n", code_max_col, code_lc, code_sz);
+	
+/*	for (int i = 0; i < code_lc; i++) {
+		char* tmp = (char*)malloc (lines_meta[i].cols);
+		int cols = lines_meta[i].cols;
+		strncpy (tmp, &code_buff[lines_meta[i].offset], cols);
+		tmp[cols - 1] = '\0';
+		printf ("%s", tmp);
+		free (tmp);
+	}
+	exit (0);*/
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	// start ncurses terminal
 	initscr ();
 
@@ -56,7 +136,7 @@ int main () {
 	*/
 	// rgb 0-1000
 	
-	
+	set_tabsize (2);
 	start_color ();
 	// get unbuffered input and disable ctrl-z, ctrl-c
 	raw ();
@@ -109,24 +189,26 @@ int main () {
 		wprintw (linno_win, "%3i", i + 1);
 	}
 	wrefresh (linno_win);
-	WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
-	mvwprintw (code_win, 0, 1, "main.c");
 	
-	{ // TODO load into dynamic list thingy
-		// TODO should this be a pad?
-		FILE* f = fopen ("src/main.c", "r");
-		assert (f);
-		char line[118];
-		int n = 0;
-		while (fgets (line, 118, f)) {
-			line[117] = '\0';
-			mvwprintw (code_win, 1 + n, 1, "%s", line);
-			n++;
-		}
-		fclose (f);
-	}
-	box (code_win, 0, 0);
-	wrefresh (code_win);
+	//printf ("cols: %i rows: %i bytes: %lu\n", code_max_col, code_lc, code_sz);
+	//WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
+	//mvwprintw (code_win, 0, 1, "main.c");
+	WINDOW* code_pad = newpad (code_lc, code_max_col);
+	int x = 0;
+	int y = 0;
+	/*for (int i = 0; i < code_lc; i++) {
+		char* tmp = (char*)malloc (lines_meta[i].cols + 1);
+		int cols = lines_meta[i].cols;
+		strncpy (tmp, &code_buff[lines_meta[i].offset], cols);
+		tmp[cols] = '\0';
+		
+		free (tmp);
+	}*/
+	wprintw (code_pad, "%s", code_buff);
+	wbkgd (code_pad, COLOR_PAIR (1));
+	assert (ERR != prefresh (code_pad, y, x, 3, 25, 47 + 3, 120 + 25));
+	//box (code_win, 0, 0);
+
 	WINDOW* watch_win = create_win (40, 30, 144, 2, true, 1);
 	WINDOW* st_win = create_win (40, 30, 144, 32, true, 1);
 	
@@ -143,10 +225,84 @@ int main () {
 		if (27 == c) {
 			break;
 		}
+		
+		bool lchange = false;
+		switch (c) {
+			case KEY_LEFT: {
+				x--;
+				if (x < 0) {
+					x = 0;
+				}
+				lchange = true;
+				break;
+			}
+			case KEY_RIGHT: {
+				x++;
+				if (x >= code_max_col - 120) {
+					x = code_max_col - 120;
+				}
+				lchange = true;
+				break;
+			}
+			case KEY_UP: {
+				y--;
+				if (y < 0) {
+					y = 0;
+				}
+				lchange = true;
+				break;
+			}
+			case KEY_DOWN: {
+				y++;
+				if (y > code_lc - 47) {
+					y = code_lc - 47;
+				}
+				lchange = true;
+				break;
+			}
+			case KEY_NPAGE: {
+				y += 50;
+				if (y > code_lc - 47) {
+					y = code_lc - 47;
+				}
+				lchange = true;
+				break;
+			}
+			case KEY_PPAGE: {
+				y -= 50;
+				if (y < 0) {
+					y = 0;
+				}
+				lchange = true;
+				break;
+			}
+			default: {}
+		}
+		
+		if (lchange) {
+			assert (ERR != prefresh (code_pad, y, x, 3, 25, 47 + 3, 120 + 25));
+			werase (linno_win);
+			for (int i = y; i < y + 48; i++) {
+				wprintw (linno_win, "%3i", i + 1);
+			}
+			wrefresh (linno_win);
+		}
+		
 	}
 
 	// return to normal terminal
 	endwin ();
+	
+	// free mem
+	// --------
+	if (code_buff) {
+		free (code_buff);
+		code_buff = NULL;
+	}
+	if (lines_meta) {
+		free (lines_meta);
+		lines_meta = NULL;
+	}
 
 	return 0;
 }
