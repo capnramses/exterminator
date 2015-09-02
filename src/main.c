@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TMP_FILE "src/main.c"
+
 /*
 http://invisible-island.net/ncurses/man/
 http://tldp.org/HOWTO/NCURSES-Programming-HOWTO/
@@ -57,7 +59,7 @@ int main () {
 	size_t code_sz = 0;
 	char* code_buff = NULL;
 	{ // read entire file into buffer
-		FILE* f = fopen ("src/main.c", "r");
+		FILE* f = fopen (TMP_FILE, "r");
 		fseek (f, 0, SEEK_END);
 		code_sz = ftell (f);
 		rewind (f);
@@ -108,8 +110,8 @@ int main () {
 		tmp[cols - 1] = '\0';
 		printf ("%s", tmp);
 		free (tmp);
-	}
-	exit (0);*/
+	}*/
+	//printf ("[%s]\n", code_buff);
 	
 	
 	
@@ -191,23 +193,24 @@ int main () {
 	wrefresh (linno_win);
 	
 	//printf ("cols: %i rows: %i bytes: %lu\n", code_max_col, code_lc, code_sz);
-	//WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
-	//mvwprintw (code_win, 0, 1, "main.c");
-	WINDOW* code_pad = newpad (code_lc, code_max_col);
-	int x = 0;
-	int y = 0;
-	/*for (int i = 0; i < code_lc; i++) {
+	WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
+	int end = code_lc;
+	if (end > 44) {
+		end = 44;
+	}
+		endwin ();
+	for (int i = 0; i < end; i++) {
 		char* tmp = (char*)malloc (lines_meta[i].cols + 1);
 		int cols = lines_meta[i].cols;
 		strncpy (tmp, &code_buff[lines_meta[i].offset], cols);
 		tmp[cols] = '\0';
-		
+		//printf ("%s", tmp);
+		mvwprintw (code_win, i + 1, 1, "%s", tmp);
 		free (tmp);
-	}*/
-	wprintw (code_pad, "%s", code_buff);
-	wbkgd (code_pad, COLOR_PAIR (1));
-	assert (ERR != prefresh (code_pad, y, x, 3, 25, 47 + 3, 120 + 25));
+	}
 	//box (code_win, 0, 0);
+	mvwprintw (code_win, 0, 1, TMP_FILE);
+	wrefresh (code_win);
 
 	WINDOW* watch_win = create_win (40, 30, 144, 2, true, 1);
 	WINDOW* st_win = create_win (40, 30, 144, 32, true, 1);
@@ -226,7 +229,7 @@ int main () {
 			break;
 		}
 		
-		bool lchange = false;
+		/*bool lchange = false;
 		switch (c) {
 			case KEY_LEFT: {
 				x--;
@@ -237,11 +240,13 @@ int main () {
 				break;
 			}
 			case KEY_RIGHT: {
-				x++;
-				if (x >= code_max_col - 120) {
-					x = code_max_col - 120;
+				if (code_max_col > 120) {
+					x++;
+					if (x >= code_max_col - 120) {
+						x = code_max_col - 120;
+					}
+					lchange = true;
 				}
-				lchange = true;
 				break;
 			}
 			case KEY_UP: {
@@ -253,19 +258,23 @@ int main () {
 				break;
 			}
 			case KEY_DOWN: {
-				y++;
-				if (y > code_lc - 47) {
-					y = code_lc - 47;
+				if (code_lc > 48) {
+					y++;
+					if (y > code_lc - 48) {
+						y = code_lc - 48;
+					}
+					lchange = true;
 				}
-				lchange = true;
 				break;
 			}
 			case KEY_NPAGE: {
-				y += 50;
-				if (y > code_lc - 47) {
-					y = code_lc - 47;
+				if (code_lc > 98) {
+					y += 50;
+					if (y > code_lc - 48) {
+						y = code_lc - 48;
+					}
+					lchange = true;
 				}
-				lchange = true;
 				break;
 			}
 			case KEY_PPAGE: {
@@ -286,7 +295,7 @@ int main () {
 				wprintw (linno_win, "%3i", i + 1);
 			}
 			wrefresh (linno_win);
-		}
+		}*/
 		
 	}
 
@@ -306,3 +315,4 @@ int main () {
 
 	return 0;
 }
+
