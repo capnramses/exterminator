@@ -18,7 +18,7 @@ DEPS = -MMD -MP -MF"${@:%.o=%.d}" -MT"${@:%.o=%.d}"
 INCLUDES = ${wildcard include/*.h}
 L = lib/lin64/
 #STA =
-#DYN =
+DYN = -lncurses
 I = -I include/
 
 .PHONY : all
