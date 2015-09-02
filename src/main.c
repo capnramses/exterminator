@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TMP_FILE "src/main.c"
+#define TMP_FILE "ascii.txt" //"src/main.c"
 
 /*
 http://invisible-island.net/ncurses/man/
@@ -19,11 +19,114 @@ ncursesw "wide" lib for wchars
 menus library
 */
 
-typedef struct Code_Line Code_Line;
-struct Code_Line {
-	size_t offset;
-	int cols;
+//
+// meta-data about where each line is in the blob (binary large object)
+typedef struct Line_Meta Line_Meta;
+struct Line_Meta {
+	long int cc;
+	long int offs;
 };
+
+//
+// reads an entire ascii file and returns pointer
+// to heap memory where it resides
+// or NULL if there was a disaster
+char* read_entire_file (const char* file_name, long int* sz) {
+	FILE* f = fopen (file_name, "r");
+	assert (f);
+	
+	// get file size
+	int r = fseek (f, 0, SEEK_END);
+	assert (r == 0);
+	*sz = ftell (f);
+	rewind (f);
+	printf ("size is %li\n", *sz);
+	
+	// mallocate
+	char* p = (char*)malloc (*sz);
+	assert (p);
+	
+	size_t rr = fread (p, *sz, 1, f);
+	assert (rr == 1);
+	
+	fclose (f);
+	return p;
+}
+
+long int count_lines_in_blob (char* blob, long int sz) {
+	long int lc = 0;
+	for (long int i = 0; i < sz; i++) {
+		if (blob[i] == '\n') {
+			lc++;
+		}
+	}
+	// add first line too!
+	if (sz > 0) {
+		lc++;
+	}
+	
+	return lc;
+}
+
+// get pointer to each line
+// and a char count
+Line_Meta* get_line_meta_in_blob (char* blob, long int sz, long int lc) {
+	Line_Meta* lms = (Line_Meta*)malloc (lc * sizeof (Line_Meta));
+	
+	int l = 0;
+	int c = 0;
+	int o = 0;
+	for (long int i = 0; i < sz; i++) {
+		c++;
+		if (blob[i] == '\n') {
+			lms[l].cc = c;
+			lms[l].offs = o;
+			// next line starts on the next char
+			o = i + 1;
+			c = 0;
+			l++;
+		}
+	}
+	
+	return lms;
+}
+
+void print_lines (Line_Meta* lms, char* blob, long int lc) {
+	char tmp[1024]; // surely no line is > 1024. SURELY
+	for (long int i = 0; i < lc; i++) {
+		long int cc = lms[i].cc;
+		long int offs = lms[i].offs;
+		assert (cc < 1023);
+		long int j;
+		for (j = 0; j < cc; j++) {
+			tmp[j] = blob[offs + j];
+		}
+		tmp[j] = '\0';
+		printf ("[%s]", tmp);
+	}
+}
+
+void write_blob_lines (WINDOW* win, int startl, int endl, char* blob,
+	long int lc, Line_Meta* lms) {
+	char tmp[1024]; // surely no line is > 1024. SURELY
+	int n = 0;
+	for (long int i = startl; i <= endl; i++) {
+		if (endl >= lc) {
+			break;
+		}
+		long int cc = lms[i].cc;
+		long int offs = lms[i].offs;
+		assert (cc < 1023);
+		long int j;
+		for (j = 0; j < cc; j++) {
+			tmp[j] = blob[offs + j];
+		}
+		tmp[j] = '\0';
+		//printf ("[%s]", tmp);
+		mvwprintw (win, n + 1, 1, "%s", tmp);
+		n++;
+	}
+}
 
 WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
 	// note backwards x,y convention
@@ -49,79 +152,21 @@ void wipe_win (WINDOW* win) {
 int main () {
 
 	setlocale (LC_ALL, "");
+
+//--------
+	printf ("reading file %s\n", TMP_FILE);
+	long int sz = 0;
+	char* blob = read_entire_file (TMP_FILE, &sz);
+	assert (blob);
 	
+	long int lc = count_lines_in_blob (blob, sz);
+	printf ("lines in blob is %li\n", lc);
 	
+	Line_Meta* lms = get_line_meta_in_blob (blob, sz, lc);
+	assert (lms);
 	
-	
-	
-	int code_lc = 0;
-	int code_max_col = 0;
-	size_t code_sz = 0;
-	char* code_buff = NULL;
-	{ // read entire file into buffer
-		FILE* f = fopen (TMP_FILE, "r");
-		fseek (f, 0, SEEK_END);
-		code_sz = ftell (f);
-		rewind (f);
-		code_buff = (char*)malloc (code_sz + 1);
-		assert (code_buff);
-		size_t result = fread (code_buff, 1, code_sz, f);
-		assert (result == code_sz);
-		code_buff[code_sz] = '\0';
-		fclose (f);
-	}
-	
-	{ // count lines in file
-		for (size_t i = 0; i < code_sz; i++) {
-			if (code_buff[i] == '\n' || code_buff[i] == '\0') {
-				code_lc++;
-			}
-		}
-	}
-	Code_Line* lines_meta = NULL;
-	lines_meta = (Code_Line*)malloc (code_lc * sizeof (Code_Line));
-	{ // lines format and cols count
-		int col = 0;
-		size_t next_offs = 0;
-		int l = 0;
-		for (size_t i = 0; i < code_sz; i++) {
-			col++;
-			if (code_buff[i] == '\n' || code_buff[i] == '\0') {
-				lines_meta[l].cols = col;
-				lines_meta[l].offset = next_offs;
-				next_offs = i;
-				l++;
-				col = 0;
-			}
-			if (code_buff[i] == '\t') {
-				col++;
-			}
-			if (col > code_max_col) {
-				code_max_col = col;
-			}
-		}//for
-	}//block
-	//printf ("cols %i rows %i sz %lu\n", code_max_col, code_lc, code_sz);
-	
-/*	for (int i = 0; i < code_lc; i++) {
-		char* tmp = (char*)malloc (lines_meta[i].cols);
-		int cols = lines_meta[i].cols;
-		strncpy (tmp, &code_buff[lines_meta[i].offset], cols);
-		tmp[cols - 1] = '\0';
-		printf ("%s", tmp);
-		free (tmp);
-	}*/
-	//printf ("[%s]\n", code_buff);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	//print_lines (lms, blob, lc);
+//--------
 	
 	// start ncurses terminal
 	initscr ();
@@ -150,11 +195,14 @@ int main () {
 	init_pair (2, COLOR_WHITE, COLOR_BLACK);
 	init_pair (3, COLOR_RED, COLOR_WHITE);
 	init_pair (4, COLOR_GREEN, COLOR_BLACK);
-
-	attron (COLOR_PAIR (1));
-	printw ("EXTERMINATOR\n");
+	
+	//attron (COLOR_PAIR (1));
+	//printw ("EXTERMINATOR\n");
+	
+	// this need to be here before windows or it wont work
 	refresh ();
-	attroff (COLOR_PAIR (1));
+	//attroff (COLOR_PAIR (1));
+
 	
 	// windows
 	// -------
@@ -194,27 +242,14 @@ int main () {
 	
 	//printf ("cols: %i rows: %i bytes: %lu\n", code_max_col, code_lc, code_sz);
 	WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
-	int end = code_lc;
-	if (end > 44) {
-		end = 44;
-	}
-		endwin ();
-	for (int i = 0; i < end; i++) {
-		char* tmp = (char*)malloc (lines_meta[i].cols + 1);
-		int cols = lines_meta[i].cols;
-		strncpy (tmp, &code_buff[lines_meta[i].offset], cols);
-		tmp[cols] = '\0';
-		//printf ("%s", tmp);
-		mvwprintw (code_win, i + 1, 1, "%s", tmp);
-		free (tmp);
-	}
-	//box (code_win, 0, 0);
-	mvwprintw (code_win, 0, 1, TMP_FILE);
+	write_blob_lines (code_win, 0, 47, blob, lc, lms);
+	box (code_win, 0, 0);
 	wrefresh (code_win);
 
 	WINDOW* watch_win = create_win (40, 30, 144, 2, true, 1);
 	WINDOW* st_win = create_win (40, 30, 144, 32, true, 1);
 	
+	long int x = 0, y = 0;
 	while (1) {
 		// can use this to wait only 1/10s for user input
 		// halfdelay()
@@ -229,73 +264,44 @@ int main () {
 			break;
 		}
 		
-		/*bool lchange = false;
+		bool lchange = false;
 		switch (c) {
-			case KEY_LEFT: {
-				x--;
-				if (x < 0) {
-					x = 0;
-				}
-				lchange = true;
-				break;
-			}
-			case KEY_RIGHT: {
-				if (code_max_col > 120) {
-					x++;
-					if (x >= code_max_col - 120) {
-						x = code_max_col - 120;
-					}
+			case KEY_UP: {
+				if (y > 0) {
+					y--;
 					lchange = true;
 				}
 				break;
 			}
-			case KEY_UP: {
-				y--;
-				if (y < 0) {
-					y = 0;
-				}
-				lchange = true;
-				break;
-			}
 			case KEY_DOWN: {
-				if (code_lc > 48) {
+				if (y < lc - 48) {
 					y++;
-					if (y > code_lc - 48) {
-						y = code_lc - 48;
-					}
 					lchange = true;
 				}
 				break;
 			}
 			case KEY_NPAGE: {
-				if (code_lc > 98) {
+				if (y + 50 < lc - 48) {
 					y += 50;
-					if (y > code_lc - 48) {
-						y = code_lc - 48;
-					}
 					lchange = true;
 				}
 				break;
 			}
 			case KEY_PPAGE: {
-				y -= 50;
-				if (y < 0) {
-					y = 0;
+				if (y - 50 > 0) {
+					y -= 50;
+					lchange = true;
 				}
-				lchange = true;
 				break;
 			}
 			default: {}
 		}
 		
 		if (lchange) {
-			assert (ERR != prefresh (code_pad, y, x, 3, 25, 47 + 3, 120 + 25));
-			werase (linno_win);
-			for (int i = y; i < y + 48; i++) {
-				wprintw (linno_win, "%3i", i + 1);
-			}
-			wrefresh (linno_win);
-		}*/
+			write_blob_lines (code_win, y, 47 + y, blob, lc, lms);
+			box (code_win, 0, 0);
+			wrefresh (code_win);
+		}
 		
 	}
 
@@ -304,14 +310,7 @@ int main () {
 	
 	// free mem
 	// --------
-	if (code_buff) {
-		free (code_buff);
-		code_buff = NULL;
-	}
-	if (lines_meta) {
-		free (lines_meta);
-		lines_meta = NULL;
-	}
+
 
 	return 0;
 }
