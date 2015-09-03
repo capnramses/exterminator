@@ -17,4 +17,10 @@ void redraw_line_nos (int startl, int endl, long int lc);
 
 void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms);
 
-void write_side_panel ();
+void write_left_side_panel ();
+
+void write_watch_panel (SLL_Node* list_ptr);
+
+void write_stack_panel (SLL_Node* list_ptr);
+
+void write_title_bars ();

@@ -10,23 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-void write_side_panel () {
-	int x = 106, y = 2;
-	char blank = ' ';
-	
-	attron (COLOR_PAIR(2));
-	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x, "%c", blank);
-	}
-	attroff (COLOR_PAIR(2));
-	
-	attron (COLOR_PAIR(4));
-	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x + 1, "%100c", blank);
-	}
-	attroff (COLOR_PAIR(4));
-}
-
 // start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms, const char* file_name, int highlighted_line) {
@@ -34,7 +17,7 @@ void write_blob_lines (int startl, int endl, char* blob,
 	char blank = ' ';
 	int n = 0;
 	
-	int x = 6, y = 2;
+	int x = 26, y = 2;
 	
 	attron (COLOR_PAIR(1));
 	
@@ -59,10 +42,6 @@ void write_blob_lines (int startl, int endl, char* blob,
 			if (tmp[j] == '\n') {
 				tmp[j] = '\0';
 			}
-			// tabs would over-extend the line by 1
-			if (tmp[j] == '\t') {
-				end--;
-			}
 		}
 		// terminate blank lines
 		tmp[j] = '\0';
@@ -84,14 +63,14 @@ void write_blob_lines (int startl, int endl, char* blob,
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
 	char c = ' ';
-	mvprintw (y - 1, x, "%-100c", c);
+	//mvprintw (y - 1, x, "%-100c", c);
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
 }
 
 // the line numbers vertical bar
 void redraw_line_nos (int startl, int endl, long int lc) {
-	int x = 0, y = 2, n = 0;
+	int x = 20, y = 2, n = 0;
 	
 	attron (COLOR_PAIR(1));
 
@@ -108,7 +87,7 @@ void redraw_line_nos (int startl, int endl, long int lc) {
 
 // the break-point vertical bar
 void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms) {
-	int x = 5, y = 2, n = 0;
+	int x = 25, y = 2, n = 0;
 	
 	attron (COLOR_PAIR(2));
 	
@@ -128,5 +107,80 @@ void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms) {
 	}
 	
 	attroff (COLOR_PAIR(2));
+}
+
+void write_left_side_panel () {
+	int x = 0, y = 2;
+	char blank = ' ';
+	
+	attron (COLOR_PAIR(1));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x, "%19c", blank);
+	}
+	attroff (COLOR_PAIR(1));
+}
+
+void write_watch_panel (SLL_Node* list_ptr) {
+	int x = 126, y = 2;
+	char blank = ' ';
+	
+	attron (COLOR_PAIR(2));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x, "%c", blank);
+	}
+	attroff (COLOR_PAIR(2));
+	
+	attron (COLOR_PAIR(4));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x + 1, "%32c", blank);
+	}
+	
+	SLL_Node* p = list_ptr;
+	int n = 0;
+	while (p) {
+		mvprintw (n + y, x + 1, "%-32s", (char*)p->data);
+		p = p->next;
+		n++;
+	}
+	
+	attroff (COLOR_PAIR(4));
+}
+
+void write_stack_panel (SLL_Node* list_ptr) {
+	int x = 159, y = 2;
+	char blank = ' ';
+	
+	attron (COLOR_PAIR(2));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x, "%c", blank);
+	}
+	attroff (COLOR_PAIR(2));
+	
+	attron (COLOR_PAIR(4));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x + 1, "%64", blank);
+	}
+	
+	SLL_Node* p = list_ptr;
+	int n = 0;
+	while (p) {
+		mvprintw (n + y, x + 1, "%-64s", (char*)p->data);
+		p = p->next;
+		n++;
+	}
+	for (int i = n; i < 49; i++) {
+		mvprintw (i + y, x + 1, "%64c", blank);
+	}
+	
+	attroff (COLOR_PAIR(4));
+}
+
+void write_title_bars () {
+	char b = ' ';
+	attron (COLOR_PAIR(6));
+	mvprintw (0, 0, "//EXTERMINATOR\\\\");
+	mvprintw (1, 127, "Behold!", b);
+	mvprintw (1, 160, "and despair!", b);
+	attroff (COLOR_PAIR(6));
 }
 

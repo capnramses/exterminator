@@ -28,6 +28,7 @@ MISSIONS
 
 #include "utils.h"
 #include "wins.h"
+//#include "apg_data_structures.h"
 #include <ncurses.h>
 #include <stdio.h>
 #include <locale.h>
@@ -107,17 +108,27 @@ int main (int argc, char** argv) {
 	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
 	init_pair (6, COLOR_BLACK, COLOR_WHITE); // title bars
 	
+	// set-up watch list
+	SLL_Node* watch_list = NULL;
+	add_to_watch ("input_y", "60", &watch_list);
+	add_to_watch ("input_x", "2", &watch_list);
+	// and stack list
+	SLL_Node* stack_list = NULL;
+	//add_to_stack ("hmm", &stack_list);
+	add_to_stack ("#0  main (argc=1, argv=0x7fffffffde98) at src/main.c:55",
+		&stack_list);
+	
 	// title bar
-	attron (COLOR_PAIR(6));
-	mvprintw (0, 40, "//EXTERMINATOR\\\\");
-	attroff (COLOR_PAIR(6));
+	write_title_bars ();
+	write_left_side_panel ();
 	// line numbers bar
 	redraw_line_nos (1, 49, lc);
 	// break points bar
 	redraw_bp_bar (0, 48, lc, lms);
 	// source text window
 	write_blob_lines (0, 48, blob, lc, lms, argv[1], 0);
-	write_side_panel ();
+	write_watch_panel (watch_list);
+	write_stack_panel (stack_list);
 
 	int input_y = 60;
 	int input_x = 2;
@@ -196,19 +207,17 @@ int main (int argc, char** argv) {
 		if (lchange) {
 			erase ();
 			
-			attron (COLOR_PAIR(6));
-			mvprintw (0, 40, "//EXTERMINATOR\\\\");
-			attroff (COLOR_PAIR(6));
-			
+			write_title_bars ();
+			write_left_side_panel ();
 			// line numbers bar
 			redraw_line_nos (start_ln + 1, start_ln + 49, lc);
 			// break points bar
 			redraw_bp_bar (start_ln, start_ln + 48, lc, lms);
 			// source text window
-		
 			write_blob_lines (start_ln, start_ln + 48, blob, lc, lms, argv[1],
 				start_ln + y);
-			write_side_panel ();
+			write_watch_panel (watch_list);
+			write_stack_panel (stack_list);
 			move (input_y, input_x);
 			refresh ();
 		}

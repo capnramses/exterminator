@@ -9,7 +9,6 @@
 #include <time.h>
 #include <assert.h>
 #include <string.h>
-#include <stdlib.h>
 #define LOG_FILE "log.txt"
 
 // log is appended to - this clears it and prints the date
@@ -101,7 +100,7 @@ long int count_lines_in_blob (char* blob, long int sz) {
 	}
 	// add first line too!
 	if (sz > 0) {
-		lc++;
+		//lc++;
 	}
 	
 	return lc;
@@ -155,3 +154,165 @@ bool toggle_bp (Line_Meta* lms, long int line, long int lc) {
 	lms[line].bp = !lms[line].bp;
 	return true;
 }
+
+//
+// add a node to the front of a singly-linked list
+// list_ptr is the pointer to the front of the list or null
+// data is the contents to hold in the node
+// sz is the size of that data in bytes
+// returns ptr to new node or NULL on error
+// note: data pointer is not freed by this function
+//
+SLL_Node* sll_add_to_front (SLL_Node** list_ptr, const void* data,
+	size_t sz) {
+	SLL_Node* node = (SLL_Node*)malloc (sizeof (SLL_Node));
+	assert (node);
+	if (!node) {
+		fprintf (stderr, "ERROR: could not alloc memory for ssl node struct\n");
+		return NULL;
+	}
+	node->next = *list_ptr;
+	node->data = malloc (sz);
+	node->sz = sz;
+	node->data = memcpy (node->data, data, sz);
+	*list_ptr = node;
+	return node;
+}
+
+//
+// add a node after another node of a singly-linked list
+// prev_ptr is the pointer to the node to go after
+// data is the contents to hold in the node
+// sz is the size of that data in bytes
+// returns ptr to new node or NULL on error
+//
+SLL_Node* sll_insert_after (SLL_Node* prev_ptr, const void* data,
+	size_t sz) {
+	// this is far more likely to be a user mistake than anything - should warn
+	if (!prev_ptr) {
+		fprintf (stderr, "ERROR: could not insert sll node, prev_ptr was NULL\n");
+		return NULL;
+	}
+	SLL_Node* node = (SLL_Node*)malloc (sizeof (SLL_Node));
+	if (!node) {
+		fprintf (stderr, "ERROR: could not alloc memory for sll node struct\n");
+		return NULL;
+	}
+	node->next = prev_ptr->next;
+	node->data = malloc (sz);
+	node->sz = sz;
+	node->data = memcpy (node->data, data, sz);
+	prev_ptr->next = node;
+	return node;
+}
+
+//
+// delete node pointed to by ptr
+// function searches list from list_ptr to ptr to find prev node
+// prev->next will then point to ptr->next
+// ptr is freed and then set to NULL
+// list_ptr is a pointer to the start of the list (or any node prior to ptr)
+// ptr is the node to delete
+// returns false on error
+//
+bool sll_delete_node (SLL_Node** list_ptr, SLL_Node* ptr) {
+	if (!*list_ptr) {
+		fprintf (stderr, "ERROR: can not delete sll node, list_ptr is NULL\n");
+		return false;
+	}
+	if (!ptr) {
+		fprintf (stderr, "ERROR: can not delete sll node, ptr is NULL\n");
+		return false;
+	}
+	// find prev node to ptr so can adjust
+	SLL_Node* p = *list_ptr;
+	while (p) {
+		// p is first node in list, so adjust list ptr
+		if (p == ptr) {
+			*list_ptr = ptr->next;
+			break;
+		}
+		// make prev->next equal to ptr->next
+		if (p->next == ptr) {
+			p->next = ptr->next;
+			break;
+		}
+		p = p->next;
+	} // endwhile
+	
+	free (ptr->data);
+	ptr->data = NULL; // pointless, not used again
+	free (ptr);
+	ptr = NULL; // pointless, not used again
+	
+	return true;
+}
+
+//
+// list_ptr is any node in the list - the farther along, the shorter the
+// search
+// returns NULL if list is empty
+//
+SLL_Node* sll_find_end_node (SLL_Node* list_ptr) {
+	if (!list_ptr) {
+		return NULL;
+	}
+	SLL_Node* p = list_ptr;
+	while (p) {
+		if (!p->next) {
+			break;
+		}
+		p = p->next;
+	}
+	return p;
+}
+
+//
+// recursively deletes and entire list, starting from ptr
+// sets ptr to NULL afterwards
+// returns false on error
+// note: figured there was no point inlining this
+//
+bool sll_recursive_delete (SLL_Node** ptr) {
+	if (!*ptr) {
+		fprintf (stderr, "ERROR: could not recursive delete sll, node was NULL\n");
+		return false;
+	}
+	if ((*ptr)->next) {
+		sll_recursive_delete (&(*ptr)->next);
+	}
+	free ((*ptr)->data);
+	(*ptr)->data = NULL; // pointless, not used again
+	free (*ptr);
+	*ptr = NULL; // pointless, not used again
+	return true;
+}
+
+bool add_to_watch (const char* var_name, const char* value_str,
+	SLL_Node** list_ptr) {
+	char a[15];
+	char b[15];
+	strncpy (a, var_name, 14);
+	strncpy (b, value_str, 14);
+	char tmp[32];
+	SLL_Node* node_ptr = NULL;
+	sprintf (tmp, "%-15s %15s", a, b);
+	//log_msg ("a:[%s] b:[%s] tmp:[%s]\n", a, b, tmp);
+	if (*list_ptr) {
+		SLL_Node* ep = sll_find_end_node (*list_ptr);
+		node_ptr = sll_insert_after (ep, tmp, 32);
+	} else {
+		node_ptr = sll_add_to_front (list_ptr, tmp, 32);
+	}
+	assert (node_ptr);
+	return true;
+}
+
+bool add_to_stack (const char* str, SLL_Node** list_ptr) {
+	char tmp[64];
+	strncpy (tmp, str, 64);
+	SLL_Node* node_ptr = sll_add_to_front (list_ptr, tmp, 64);
+	assert (node_ptr);
+	return true;
+}
+
