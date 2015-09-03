@@ -13,7 +13,7 @@
 // start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms, const char* file_name, int highlighted_line) {
-	char tmp[100]; // surely no line is > 1024. SURELY
+	char tmp[101]; // surely no line is > 1024. SURELY
 	char blank = ' ';
 	int n = 0;
 	
@@ -62,8 +62,7 @@ void write_blob_lines (int startl, int endl, char* blob,
 	//box (win, 0, 0);
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
-	char c = ' ';
-	//mvprintw (y - 1, x, "%-100c", c);
+	log_msg ("printed is %i + %i = %i\n", startl, -1, highlighted_line);
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
 }
