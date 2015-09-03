@@ -1,21 +1,40 @@
-/* TODO
- short files aren't displaying
- rewrite/remove createwin wipewin
+//
+// //EXTERMINATOR\\ an ncurses-based front-end for GDB written in C99
+// First v. Dr Anton Gerdelan 3 Sep 2015
+// https://github.com/capnramses/exterminator
+//
+
+/*
+GOALS (in priority order)
+0. WORKS ON LINUX
+1. RUNS FAST
+2. LOADS FAST
+
+MISSIONS
+1. super-fast text file loading and display with ncurses - MISSION ACCOMPLISHED
+2. invoke libgdb from same programme and start a session
+   * perhaps use argv[1] to specify executable
+3. allow setting and unsetting of gdb breakpoints visually
+   * keyboard
+   * mouse
+4. file browsing/unload/load
+   * keyboard
+   * mouse
 */
 
+/* TODO
+* rewrite/remove createwin wipewin
+*/
+
+#include "utils.h"
+#include "wins.h"
 #include <ncurses.h>
 #include <stdio.h>
 #include <locale.h>
 #include <assert.h>
-#include <stdbool.h>
 #include <dirent.h> // directory contents POSIX systems
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <stdarg.h>
-
-#define TMP_FILE "ascii.txt" //"src/main.c"
-#define LOG_FILE "log.txt"
 
 /*
 http://invisible-island.net/ncurses/man/
@@ -25,199 +44,19 @@ pads (for windows with big scrolling contents)
 panels (overlapping windows)
 ncursesw "wide" lib for wchars
 menus library
+chgat - changes some but not all characters after cursor (for fuck's sake)
+
+changing the background colour of a window can make stuff flash for attention
+
 */
 
-// log is appended to - this clears it and prints the date
-// returns false on error
-bool restart_log () {
-	FILE* f = fopen (LOG_FILE, "w");
-	if (!f) {
-		fprintf (stderr,
-			"ERROR: could not open LOG_FILE log file %s for writing\n", LOG_FILE);
-		return false;
-	}
-	time_t now = time (NULL);
-	char* date = ctime (&now);
-	fprintf (f, "LOG_FILE log. local time %s\n", date);
-	fprintf (f, "build version: %s %s\n", __DATE__, __TIME__);
-	fclose (f);
-	return true;
-}
-
-// print to log in printf() style
-// returns false on error
-bool log_msg (const char* message, ...) {
-	va_list argptr;
-	FILE* f = fopen (LOG_FILE, "a");
-	if (!f) {
-		fprintf (stderr,
-			"ERROR: could not open LOG_FILE %s file for appending\n", LOG_FILE);
-		return false;
-	}
-	va_start (argptr, message);
-	vfprintf (f, message, argptr);
-	va_end (argptr);
-	fclose (f);
-	return true;
-}
-
-// same as gl_log except also prints to stderr
-// returns false on error
-bool log_err (const char* message, ...) {
-	va_list argptr;
-	FILE* f = fopen (LOG_FILE, "a");
-	if (!f) {
-		fprintf (stderr,
-			"ERROR: could not open LOG_FILE %s file for appending\n", LOG_FILE);
-		return false;
-	}
-	va_start (argptr, message);
-	vfprintf (f, message, argptr);
-	va_end (argptr);
-	va_start (argptr, message);
-	vfprintf (stderr, message, argptr);
-	va_end (argptr);
-	fclose (f);
-	return true;
-}
-
-//
-// meta-data about where each line is in the blob (binary large object)
-typedef struct Line_Meta Line_Meta;
-struct Line_Meta {
-	long int cc;
-	long int offs;
-};
-
-//
-// reads an entire ascii file and returns pointer
-// to heap memory where it resides
-// or NULL if there was a disaster
-char* read_entire_file (const char* file_name, long int* sz) {
-	FILE* f = fopen (file_name, "r");
-	assert (f);
-	
-	// get file size
-	int r = fseek (f, 0, SEEK_END);
-	assert (r == 0);
-	*sz = ftell (f);
-	rewind (f);
-	printf ("size is %li\n", *sz);
-	
-	// mallocate
-	char* p = (char*)malloc (*sz);
-	assert (p);
-	
-	size_t rr = fread (p, *sz, 1, f);
-	assert (rr == 1);
-	
-	fclose (f);
-	return p;
-}
-
-long int count_lines_in_blob (char* blob, long int sz) {
-	long int lc = 0;
-	for (long int i = 0; i < sz; i++) {
-		if (blob[i] == '\n') {
-			lc++;
-		}
-	}
-	// add first line too!
-	if (sz > 0) {
-		lc++;
-	}
-	
-	return lc;
-}
-
-// get pointer to each line
-// and a char count
-Line_Meta* get_line_meta_in_blob (char* blob, long int sz, long int lc) {
-	Line_Meta* lms = (Line_Meta*)malloc (lc * sizeof (Line_Meta));
-	// zero this as last line might be empty and won't be set to anything in this
-	// loop
-	memset (lms, 0, lc * sizeof (Line_Meta));
-	
-	int l = 0;
-	int c = 0;
-	int o = 0;
-	for (long int i = 0; i < sz; i++) {
-		c++;
-		if (blob[i] == '\n') {
-			lms[l].cc = c;
-			lms[l].offs = o;
-			// next line starts on the next char
-			o = i + 1;
-			c = 0;
-			l++;
-		}
-	}
-	
-	return lms;
-}
-
-void print_lines (Line_Meta* lms, char* blob, long int lc) {
-	char tmp[1024]; // surely no line is > 1024. SURELY
-	for (long int i = 0; i < lc; i++) {
-		long int cc = lms[i].cc;
-		long int offs = lms[i].offs;
-		assert (cc < 1023);
-		long int j;
-		for (j = 0; j < cc; j++) {
-			tmp[j] = blob[offs + j];
-		}
-		tmp[j] = '\0';
-		printf ("[%s]", tmp);
-	}
-}
-
-// start line is 0 but will be displayed as 1 in side bar
-void write_blob_lines (WINDOW* win, int startl, int endl, char* blob,
-	long int lc, Line_Meta* lms) {
-	char tmp[1024]; // surely no line is > 1024. SURELY
-	int n = 0;
-	
-	assert (endl < lc);
-	
-	werase (win);
-	
-	for (long int i = startl; i <= endl; i++) {
-		if (endl >= lc) {
-			break;
-		}
-		long int cc = lms[i].cc;
-		long int offs = lms[i].offs;
-		log_msg ("writing line %i) cc %i offs %i\n", i, cc, offs);
-		if (cc >= 1023) {
-			fprintf (stderr, "ERR cc = %li on line %li\n", cc, i);
-			exit (1);
-		}
-		long int j;
-		for (j = 0; j < cc; j++) {
-			tmp[j] = blob[offs + j];
-		}
-		tmp[j] = '\0';
-		//printf ("[%s]", tmp);
-		mvwprintw (win, n + 1, 1, "%s", tmp);
-		n++;
-	}
-}
-
-void redraw_line_nos (WINDOW* win, int startl, int endl) {
-	werase (win);
-	for (int i = startl; i <= endl; i++) {
-		wprintw (win, "%3i", i);
-	}
-	wrefresh (win);
-}
-
-WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
+/*WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
 	// note backwards x,y convention
 	WINDOW* win = newwin (h, w, yi, xi);
 	if (box) {
 		box (win, 0, 0); // default surrounding chars
 	}
-	assert (wbkgd (win, COLOR_PAIR (pair)) > -1);
+	//assert (wbkgd (win, COLOR_PAIR (pair)) > -1);
 	wrefresh (win);
 	return win;
 }
@@ -230,9 +69,14 @@ void wipe_win (WINDOW* win) {
 	// delete
 	delwin (win);
 	win = NULL;
-}
+}*/
 
-int main () {
+int main (int argc, char** argv) {
+	if (argc < 2) {
+		printf ("usage is ./exterminator my_text_file.c\n");
+		return 0;
+	}
+
 	setlocale (LC_ALL, "");
 
 	if (!restart_log ()) {
@@ -240,9 +84,9 @@ int main () {
 	}
 	
 //--------
-	log_msg ("reading file %s\n", TMP_FILE);
+	log_msg ("reading file %s\n", argv[1]);
 	long int sz = 0;
-	char* blob = read_entire_file (TMP_FILE, &sz);
+	char* blob = read_entire_file (argv[1], &sz);
 	assert (blob);
 	
 	long int lc = count_lines_in_blob (blob, sz);
@@ -274,20 +118,22 @@ int main () {
 	// get unbuffered input and disable ctrl-z, ctrl-c
 	raw ();
 	// stop echoing user input
-//	noecho ();
+	noecho ();
 	// enable F1 etc.
 	keypad (stdscr, TRUE);
 	init_pair (1, COLOR_WHITE, COLOR_BLUE);
 	init_pair (2, COLOR_WHITE, COLOR_BLACK);
-	init_pair (3, COLOR_RED, COLOR_WHITE);
+	init_pair (3, COLOR_BLACK, COLOR_RED);
 	init_pair (4, COLOR_GREEN, COLOR_BLACK);
+	init_pair (5, COLOR_BLUE, COLOR_CYAN);
+	init_pair (6, COLOR_BLACK, COLOR_WHITE);
 	
 	// this need to be here before windows or it wont work
 	refresh ();
 	
 	// windows
 	// -------
-	WINDOW* title_win = create_win (184, 1, 0, 0, false, 4);
+	/*WINDOW* title_win = create_win (184, 1, 0, 0, false, 4);
 	mvwprintw (title_win, 0, 84, "// EXTERMINATOR \\\\");
 	wrefresh (title_win);
 	WINDOW* menu_win = create_win (184, 1, 0, 1, false, 3);
@@ -313,16 +159,25 @@ int main () {
 		wrefresh (browse_win);
 	}
 	WINDOW* bp_win = create_win (1, 48, 20, 3, false, 3);
-	WINDOW* linno_win = create_win (3, 48, 21, 3, false, 2);
-	redraw_line_nos (linno_win, 1, 48);
+	WINDOW* linno_win = create_win (4, 48, 21, 3, false, 2);
 	
-	WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
-	write_blob_lines (code_win, 0, 47, blob, lc, lms);
-	box (code_win, 0, 0);
-	wrefresh (code_win);
+	
+	WINDOW* code_win = create_win (120, 50, 25, 2, false, 1);*/
+	
+	// title bar
+	attron(COLOR_PAIR(6));
+	mvprintw (0, 40, "//EXTERMINATOR\\\\");
+	attroff(COLOR_PAIR(6));
+	// line numbers bar
+	redraw_line_nos (1, 49, lc);
+	// break points bar
+	redraw_bp_bar (0, 48, lc, lms);
+	// source text window
+	write_blob_lines (0, 48, blob, lc, lms, argv[1], 0);
 
-	WINDOW* watch_win = create_win (40, 30, 144, 2, true, 1);
-	WINDOW* st_win = create_win (40, 30, 144, 32, true, 1);
+/*
+	WINDOW* watch_win = create_win (40, 30, 145, 2, true, 1);
+	WINDOW* st_win = create_win (40, 30, 145, 32, true, 1);
 	WINDOW* op_win = create_win (144, 10, 0, 52, false, 1);
 	wprintw (op_win, "debug output goes here1\n");
 	wprintw (op_win, "debug output goes here2\n");
@@ -336,8 +191,9 @@ int main () {
 	wprintw (op_win, "debug output goes here2\n");
 	wprintw (op_win, "debug output goes here11\n");
 	wrefresh (op_win);
-	
+	*/
 	long int x = 0, y = 0;
+	//wmove (code_win, y, x);
 	while (1) {
 		// can use this to wait only 1/10s for user input
 		// halfdelay()
@@ -353,6 +209,7 @@ int main () {
 		}
 		
 		bool lchange = false;
+		// keys list http://www.gnu.org/software/guile-ncurses/manual/html_node/Getting-characters-from-the-keyboard.html
 		switch (c) {
 			case KEY_UP: {
 				if (y > 0) {
@@ -362,14 +219,14 @@ int main () {
 				break;
 			}
 			case KEY_DOWN: {
-				if (y < lc - 48) {
+				if (y < lc - 1) {
 					y++;
 					lchange = true;
 				}
 				break;
 			}
 			case KEY_NPAGE: {
-				if (y + 50 < lc - 48) {
+				if (y + 50 < lc) {
 					y += 50;
 					lchange = true;
 				}
@@ -382,14 +239,39 @@ int main () {
 				}
 				break;
 			}
+			case 32: {
+				assert (toggle_bp (lms, y, lc));
+				lchange = true;
+				break;
+			}
 			default: {}
 		}
 		
 		if (lchange) {
-			write_blob_lines (code_win, y, 47 + y, blob, lc, lms);
-			box (code_win, 0, 0);
-			wrefresh (code_win);
-			redraw_line_nos (linno_win, y + 1, 48 + y);
+			erase ();
+			
+			// NOTE: redudant rendering b/c erased whole thing
+			attron(COLOR_PAIR(6));
+			mvprintw (0, 40, "//EXTERMINATOR\\\\");
+			attroff(COLOR_PAIR(6));
+			
+			// line numbers bar
+			redraw_line_nos (1, 49, lc);
+			// break points bar
+			redraw_bp_bar (0, 48, lc, lms);
+			// source text window
+		
+			write_blob_lines (0, 48, blob, lc, lms, argv[1], y);
+			//redraw_line_nos (linno_win, y + 1, 48 + y, lc);
+			// cursor and line highlight
+			// there are window-specific versions of these but i want to cover a
+			// bunch of stuff with one highlight?
+			//move (y + 3, x + 20);
+			//int chgat(int n, attr_t attr, short color, const void *opts)
+			// attribs are A_BLINK, A_BOLD, A_DIM, A_REVERSE, A_STANDOUT and A_UNDERLINE. ??
+			//chgat (125, COLOR_PAIR (4), COLOR_PAIR (4), NULL);
+			//log_msg ("y%i x%i\n", y, x);
+			refresh ();
 		}
 		
 	}

@@ -11,7 +11,7 @@ F = -std=c99 -O0 -Wall -pedantic -fmessage-length=78 -m64
 
 BIN = exterminator
 CC = clang
-OBJ = obj/main.o
+OBJ = obj/main.o obj/utils.o obj/wins.o
 # UNC is "use ncurses"
 D = -DUNC
 DEPS = -MMD -MP -MF"${@:%.o=%.d}" -MT"${@:%.o=%.d}"
