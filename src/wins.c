@@ -62,7 +62,6 @@ void write_blob_lines (int startl, int endl, char* blob,
 	//box (win, 0, 0);
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
-	log_msg ("printed is %i + %i = %i\n", startl, -1, highlighted_line);
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
 }

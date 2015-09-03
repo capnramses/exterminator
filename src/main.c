@@ -37,6 +37,9 @@ MISSIONS
 #include <stdlib.h>
 #include <string.h>
 
+#include <unistd.h>
+#include <sys/types.h>
+
 /*
 http://invisible-island.net/ncurses/man/
 http://tldp.org/HOWTO/NCURSES-Programming-HOWTO/
@@ -52,6 +55,30 @@ changing the background colour of a window can make stuff flash for attention
 */
 
 int main (int argc, char** argv) {
+	if (!restart_log ()) {
+		return 1;
+	}
+
+//------- fork for gdb/mi
+	log_msg ("forking child process...\n");
+	int pipefd[2];
+	pid_t cpid;
+	char buf;
+	
+	pipe (pipefd); // create pipe
+	cpid = fork (); // duplicate this proc
+	if (cpid == 0) { // i am child
+		log_msg ("i am the child\n");
+		
+		// TODO -- start the child's function and separate log
+		// -- mirror all gdb output in said log to test it
+	
+		return 0;
+	} else { // i am parent
+	
+	}
+//-------
+
 	if (argc < 2) {
 		printf ("usage is ./exterminator my_text_file.c\n");
 		return 0;
@@ -59,10 +86,6 @@ int main (int argc, char** argv) {
 
 	setlocale (LC_ALL, "");
 
-	if (!restart_log ()) {
-		return 1;
-	}
-	
 //--------
 	log_msg ("reading file %s\n", argv[1]);
 	long int sz = 0;
