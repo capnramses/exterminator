@@ -50,27 +50,6 @@ changing the background colour of a window can make stuff flash for attention
 
 */
 
-/*WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
-	// note backwards x,y convention
-	WINDOW* win = newwin (h, w, yi, xi);
-	if (box) {
-		box (win, 0, 0); // default surrounding chars
-	}
-	//assert (wbkgd (win, COLOR_PAIR (pair)) > -1);
-	wrefresh (win);
-	return win;
-}
-
-void wipe_win (WINDOW* win) {
-	// clear window borders
-	wborder (win, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ');
-	// contents
-	wrefresh (win);
-	// delete
-	delwin (win);
-	win = NULL;
-}*/
-
 int main (int argc, char** argv) {
 	if (argc < 2) {
 		printf ("usage is ./exterminator my_text_file.c\n");
@@ -118,82 +97,36 @@ int main (int argc, char** argv) {
 	// get unbuffered input and disable ctrl-z, ctrl-c
 	raw ();
 	// stop echoing user input
-	noecho ();
+	//noecho ();
 	// enable F1 etc.
 	keypad (stdscr, TRUE);
-	init_pair (1, COLOR_WHITE, COLOR_BLUE);
-	init_pair (2, COLOR_WHITE, COLOR_BLACK);
-	init_pair (3, COLOR_BLACK, COLOR_RED);
-	init_pair (4, COLOR_GREEN, COLOR_BLACK);
-	init_pair (5, COLOR_BLUE, COLOR_CYAN);
-	init_pair (6, COLOR_BLACK, COLOR_WHITE);
-	
-	// this need to be here before windows or it wont work
-	refresh ();
-	
-	// windows
-	// -------
-	/*WINDOW* title_win = create_win (184, 1, 0, 0, false, 4);
-	mvwprintw (title_win, 0, 84, "// EXTERMINATOR \\\\");
-	wrefresh (title_win);
-	WINDOW* menu_win = create_win (184, 1, 0, 1, false, 3);
-	wprintw (menu_win, "FILE   EDIT   VIEW   DEBUG   THINGY");
-	wrefresh (menu_win);
-	WINDOW* browse_win = create_win (20, 50, 0, 2, true, 1);
-	{ // TODO make me a redraw function
-		DIR* dirp;
-		struct dirent* direntp;
-		int n = 0;
-		dirp = opendir (".");
-		if (dirp) {
-			direntp = readdir (dirp);
-			while (direntp) {
-				char tmp[18];
-				strncpy (tmp, direntp->d_name, 18);
-				mvwprintw (browse_win, n + 1, 1, "%s", tmp);
-				direntp = readdir (dirp);
-				n++;
-			}
-			closedir (dirp);
-		}
-		wrefresh (browse_win);
-	}
-	WINDOW* bp_win = create_win (1, 48, 20, 3, false, 3);
-	WINDOW* linno_win = create_win (4, 48, 21, 3, false, 2);
-	
-	
-	WINDOW* code_win = create_win (120, 50, 25, 2, false, 1);*/
+	init_pair (1, COLOR_WHITE, COLOR_BLUE); // src, line #s
+	init_pair (2, COLOR_WHITE, COLOR_BLACK); // borders, bp bar
+	init_pair (3, COLOR_BLACK, COLOR_RED); // red break points
+	init_pair (4, COLOR_BLACK, COLOR_WHITE); // side panels
+	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
+	init_pair (6, COLOR_BLACK, COLOR_WHITE); // title bars
 	
 	// title bar
-	attron(COLOR_PAIR(6));
+	attron (COLOR_PAIR(6));
 	mvprintw (0, 40, "//EXTERMINATOR\\\\");
-	attroff(COLOR_PAIR(6));
+	attroff (COLOR_PAIR(6));
 	// line numbers bar
 	redraw_line_nos (1, 49, lc);
 	// break points bar
 	redraw_bp_bar (0, 48, lc, lms);
 	// source text window
 	write_blob_lines (0, 48, blob, lc, lms, argv[1], 0);
+	write_side_panel ();
 
-/*
-	WINDOW* watch_win = create_win (40, 30, 145, 2, true, 1);
-	WINDOW* st_win = create_win (40, 30, 145, 32, true, 1);
-	WINDOW* op_win = create_win (144, 10, 0, 52, false, 1);
-	wprintw (op_win, "debug output goes here1\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here2\n");
-	wprintw (op_win, "debug output goes here11\n");
-	wrefresh (op_win);
-	*/
-	long int x = 0, y = 0;
-	//wmove (code_win, y, x);
+	int input_y = 60;
+	int input_x = 2;
+	move (input_y, input_x);
+	// this need to be here before windows or it wont work
+	refresh ();
+
+	long int y = 0;
+	long int start_ln = 0;
 	while (1) {
 		// can use this to wait only 1/10s for user input
 		// halfdelay()
@@ -212,35 +145,48 @@ int main (int argc, char** argv) {
 		// keys list http://www.gnu.org/software/guile-ncurses/manual/html_node/Getting-characters-from-the-keyboard.html
 		switch (c) {
 			case KEY_UP: {
+				// move line cursor
 				if (y > 0) {
 					y--;
 					lchange = true;
+				// scroll page
+				} else {
+					if (start_ln > 0) {
+						start_ln--;
+						lchange = true;
+					}
 				}
 				break;
 			}
 			case KEY_DOWN: {
-				if (y < lc - 1) {
-					y++;
-					lchange = true;
+				// move line cursor
+				// not past end of doc even if room on pg
+				if (start_ln + y < lc - 1) {
+					if (y < 48) {
+						y++;
+						lchange = true;
+					// scroll page
+					} else {
+						if (start_ln < lc - 1) {
+							start_ln++;
+							lchange = true;
+						}
+					}
 				}
 				break;
 			}
 			case KEY_NPAGE: {
-				if (y + 50 < lc) {
-					y += 50;
-					lchange = true;
-				}
+				start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
+				lchange = true;
 				break;
 			}
 			case KEY_PPAGE: {
-				if (y - 50 > 0) {
-					y -= 50;
-					lchange = true;
-				}
+				start_ln = MAX (start_ln - 50, 0);
+				lchange = true;
 				break;
 			}
 			case 32: {
-				assert (toggle_bp (lms, y, lc));
+				assert (toggle_bp (lms, y + start_ln, lc));
 				lchange = true;
 				break;
 			}
@@ -250,27 +196,20 @@ int main (int argc, char** argv) {
 		if (lchange) {
 			erase ();
 			
-			// NOTE: redudant rendering b/c erased whole thing
-			attron(COLOR_PAIR(6));
+			attron (COLOR_PAIR(6));
 			mvprintw (0, 40, "//EXTERMINATOR\\\\");
-			attroff(COLOR_PAIR(6));
+			attroff (COLOR_PAIR(6));
 			
 			// line numbers bar
-			redraw_line_nos (1, 49, lc);
+			redraw_line_nos (start_ln + 1, start_ln + 49, lc);
 			// break points bar
-			redraw_bp_bar (0, 48, lc, lms);
+			redraw_bp_bar (start_ln, start_ln + 48, lc, lms);
 			// source text window
 		
-			write_blob_lines (0, 48, blob, lc, lms, argv[1], y);
-			//redraw_line_nos (linno_win, y + 1, 48 + y, lc);
-			// cursor and line highlight
-			// there are window-specific versions of these but i want to cover a
-			// bunch of stuff with one highlight?
-			//move (y + 3, x + 20);
-			//int chgat(int n, attr_t attr, short color, const void *opts)
-			// attribs are A_BLINK, A_BOLD, A_DIM, A_REVERSE, A_STANDOUT and A_UNDERLINE. ??
-			//chgat (125, COLOR_PAIR (4), COLOR_PAIR (4), NULL);
-			//log_msg ("y%i x%i\n", y, x);
+			write_blob_lines (start_ln, start_ln + 48, blob, lc, lms, argv[1],
+				start_ln + y);
+			write_side_panel ();
+			move (input_y, input_x);
 			refresh ();
 		}
 		

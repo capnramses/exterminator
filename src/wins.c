@@ -10,19 +10,37 @@
 #include <stdlib.h>
 #include <string.h>
 
+void write_side_panel () {
+	int x = 106, y = 2;
+	char blank = ' ';
+	
+	attron (COLOR_PAIR(2));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x, "%c", blank);
+	}
+	attroff (COLOR_PAIR(2));
+	
+	attron (COLOR_PAIR(4));
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x + 1, "%100c", blank);
+	}
+	attroff (COLOR_PAIR(4));
+}
+
 // start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms, const char* file_name, int highlighted_line) {
-	char tmp[1024]; // surely no line is > 1024. SURELY
+	char tmp[100]; // surely no line is > 1024. SURELY
+	char blank = ' ';
 	int n = 0;
 	
 	int x = 6, y = 2;
 	
 	attron (COLOR_PAIR(1));
 	
-	long int range = (endl - startl) + 1;
-	for (long int i = 49 - range; i < 49; i++) {
-		mvprintw (i + y, x, "%-100s", "\0");
+	// make blue background
+	for (int i = 0; i < 49; i++) {
+		mvprintw (i + y, x, "%100c", blank);
 	}
 	
 	for (long int i = startl; i <= endl; i++) {
@@ -32,16 +50,18 @@ void write_blob_lines (int startl, int endl, char* blob,
 		long int cc = lms[i].cc;
 		long int offs = lms[i].offs;
 		//log_msg ("writing line %i) cc %i offs %i\n", i, cc, offs);
-		if (cc >= 1023) {
-			fprintf (stderr, "ERR cc = %li on line %li\n", cc, i);
-			exit (1);
-		}
+		// chop trailing ends off
+		long int end = MIN (cc, 100);
 		long int j;
-		for (j = 0; j < cc; j++) {
+		for (j = 0; j < end; j++) {
 			tmp[j] = blob[offs + j];
 			// prevent lines doing their own breaks in my formatting
 			if (tmp[j] == '\n') {
 				tmp[j] = '\0';
+			}
+			// tabs would over-extend the line by 1
+			if (tmp[j] == '\t') {
+				end--;
 			}
 		}
 		// terminate blank lines
@@ -55,7 +75,7 @@ void write_blob_lines (int startl, int endl, char* blob,
 			attroff(COLOR_PAIR(5));
 			attron(COLOR_PAIR(1));
 		} else {
-			mvprintw (y + n, x, "%-100s", tmp);
+			mvprintw (y + n, x, "%s", tmp);
 		}
 		n++;
 	}
@@ -63,10 +83,13 @@ void write_blob_lines (int startl, int endl, char* blob,
 	//box (win, 0, 0);
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
+	char c = ' ';
+	mvprintw (y - 1, x, "%-100c", c);
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
 }
 
+// the line numbers vertical bar
 void redraw_line_nos (int startl, int endl, long int lc) {
 	int x = 0, y = 2, n = 0;
 	
@@ -83,6 +106,7 @@ void redraw_line_nos (int startl, int endl, long int lc) {
 	attroff (COLOR_PAIR(1));
 }
 
+// the break-point vertical bar
 void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms) {
 	int x = 5, y = 2, n = 0;
 	

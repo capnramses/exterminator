@@ -9,6 +9,10 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define CLAMP(x ,lo, hi) (MIN (hi, MAX (lo, x)))
+
 // meta-data about where each line is in the blob (binary large object)
 typedef struct Line_Meta Line_Meta;
 struct Line_Meta {
