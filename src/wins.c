@@ -176,9 +176,13 @@ void write_stack_panel (SLL_Node* list_ptr) {
 void write_title_bars () {
 	char b = ' ';
 	attron (COLOR_PAIR(6));
-	mvprintw (0, 0, "//EXTERMINATOR\\\\");
+	mvprintw (0, 2, "EXTERMINATOR");
 	mvprintw (1, 127, "Behold!", b);
 	mvprintw (1, 160, "and despair!", b);
 	attroff (COLOR_PAIR(6));
+	attron (COLOR_PAIR(4));
+	mvprintw (0, 0, "//");
+	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses");
+	attroff (COLOR_PAIR(4));
 }
 

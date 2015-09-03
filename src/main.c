@@ -129,7 +129,7 @@ int main (int argc, char** argv) {
 	init_pair (3, COLOR_BLACK, COLOR_RED); // red break points
 	init_pair (4, COLOR_BLACK, COLOR_WHITE); // side panels
 	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
-	init_pair (6, COLOR_BLACK, COLOR_WHITE); // title bars
+	init_pair (6, COLOR_RED, COLOR_WHITE); // title bars
 	
 	// set-up watch list
 	SLL_Node* watch_list = NULL;
