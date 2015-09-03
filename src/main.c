@@ -1,3 +1,8 @@
+/* TODO
+ short files aren't displaying
+ rewrite/remove createwin wipewin
+*/
+
 #include <ncurses.h>
 #include <stdio.h>
 #include <locale.h>
@@ -6,8 +11,11 @@
 #include <dirent.h> // directory contents POSIX systems
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <stdarg.h>
 
 #define TMP_FILE "ascii.txt" //"src/main.c"
+#define LOG_FILE "log.txt"
 
 /*
 http://invisible-island.net/ncurses/man/
@@ -18,6 +26,60 @@ panels (overlapping windows)
 ncursesw "wide" lib for wchars
 menus library
 */
+
+// log is appended to - this clears it and prints the date
+// returns false on error
+bool restart_log () {
+	FILE* f = fopen (LOG_FILE, "w");
+	if (!f) {
+		fprintf (stderr,
+			"ERROR: could not open LOG_FILE log file %s for writing\n", LOG_FILE);
+		return false;
+	}
+	time_t now = time (NULL);
+	char* date = ctime (&now);
+	fprintf (f, "LOG_FILE log. local time %s\n", date);
+	fprintf (f, "build version: %s %s\n", __DATE__, __TIME__);
+	fclose (f);
+	return true;
+}
+
+// print to log in printf() style
+// returns false on error
+bool log_msg (const char* message, ...) {
+	va_list argptr;
+	FILE* f = fopen (LOG_FILE, "a");
+	if (!f) {
+		fprintf (stderr,
+			"ERROR: could not open LOG_FILE %s file for appending\n", LOG_FILE);
+		return false;
+	}
+	va_start (argptr, message);
+	vfprintf (f, message, argptr);
+	va_end (argptr);
+	fclose (f);
+	return true;
+}
+
+// same as gl_log except also prints to stderr
+// returns false on error
+bool log_err (const char* message, ...) {
+	va_list argptr;
+	FILE* f = fopen (LOG_FILE, "a");
+	if (!f) {
+		fprintf (stderr,
+			"ERROR: could not open LOG_FILE %s file for appending\n", LOG_FILE);
+		return false;
+	}
+	va_start (argptr, message);
+	vfprintf (f, message, argptr);
+	va_end (argptr);
+	va_start (argptr, message);
+	vfprintf (stderr, message, argptr);
+	va_end (argptr);
+	fclose (f);
+	return true;
+}
 
 //
 // meta-data about where each line is in the blob (binary large object)
@@ -72,6 +134,9 @@ long int count_lines_in_blob (char* blob, long int sz) {
 // and a char count
 Line_Meta* get_line_meta_in_blob (char* blob, long int sz, long int lc) {
 	Line_Meta* lms = (Line_Meta*)malloc (lc * sizeof (Line_Meta));
+	// zero this as last line might be empty and won't be set to anything in this
+	// loop
+	memset (lms, 0, lc * sizeof (Line_Meta));
 	
 	int l = 0;
 	int c = 0;
@@ -106,17 +171,27 @@ void print_lines (Line_Meta* lms, char* blob, long int lc) {
 	}
 }
 
+// start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (WINDOW* win, int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms) {
 	char tmp[1024]; // surely no line is > 1024. SURELY
 	int n = 0;
+	
+	assert (endl < lc);
+	
+	werase (win);
+	
 	for (long int i = startl; i <= endl; i++) {
 		if (endl >= lc) {
 			break;
 		}
 		long int cc = lms[i].cc;
 		long int offs = lms[i].offs;
-		assert (cc < 1023);
+		log_msg ("writing line %i) cc %i offs %i\n", i, cc, offs);
+		if (cc >= 1023) {
+			fprintf (stderr, "ERR cc = %li on line %li\n", cc, i);
+			exit (1);
+		}
 		long int j;
 		for (j = 0; j < cc; j++) {
 			tmp[j] = blob[offs + j];
@@ -126,6 +201,14 @@ void write_blob_lines (WINDOW* win, int startl, int endl, char* blob,
 		mvwprintw (win, n + 1, 1, "%s", tmp);
 		n++;
 	}
+}
+
+void redraw_line_nos (WINDOW* win, int startl, int endl) {
+	werase (win);
+	for (int i = startl; i <= endl; i++) {
+		wprintw (win, "%3i", i);
+	}
+	wrefresh (win);
 }
 
 WINDOW* create_win (int w, int h, int xi, int yi, bool box, int pair) {
@@ -150,17 +233,20 @@ void wipe_win (WINDOW* win) {
 }
 
 int main () {
-
 	setlocale (LC_ALL, "");
 
+	if (!restart_log ()) {
+		return 1;
+	}
+	
 //--------
-	printf ("reading file %s\n", TMP_FILE);
+	log_msg ("reading file %s\n", TMP_FILE);
 	long int sz = 0;
 	char* blob = read_entire_file (TMP_FILE, &sz);
 	assert (blob);
 	
 	long int lc = count_lines_in_blob (blob, sz);
-	printf ("lines in blob is %li\n", lc);
+	log_msg ("lines in blob is %li\n", lc);
 	
 	Line_Meta* lms = get_line_meta_in_blob (blob, sz, lc);
 	assert (lms);
@@ -196,13 +282,8 @@ int main () {
 	init_pair (3, COLOR_RED, COLOR_WHITE);
 	init_pair (4, COLOR_GREEN, COLOR_BLACK);
 	
-	//attron (COLOR_PAIR (1));
-	//printw ("EXTERMINATOR\n");
-	
 	// this need to be here before windows or it wont work
 	refresh ();
-	//attroff (COLOR_PAIR (1));
-
 	
 	// windows
 	// -------
@@ -213,7 +294,7 @@ int main () {
 	wprintw (menu_win, "FILE   EDIT   VIEW   DEBUG   THINGY");
 	wrefresh (menu_win);
 	WINDOW* browse_win = create_win (20, 50, 0, 2, true, 1);
-	{
+	{ // TODO make me a redraw function
 		DIR* dirp;
 		struct dirent* direntp;
 		int n = 0;
@@ -228,19 +309,13 @@ int main () {
 				n++;
 			}
 			closedir (dirp);
-		} else {
-			printf ("NOPE!\n");
 		}
 		wrefresh (browse_win);
 	}
 	WINDOW* bp_win = create_win (1, 48, 20, 3, false, 3);
 	WINDOW* linno_win = create_win (3, 48, 21, 3, false, 2);
-	for (int i = 0; i < 48; i++) {
-		wprintw (linno_win, "%3i", i + 1);
-	}
-	wrefresh (linno_win);
+	redraw_line_nos (linno_win, 1, 48);
 	
-	//printf ("cols: %i rows: %i bytes: %lu\n", code_max_col, code_lc, code_sz);
 	WINDOW* code_win = create_win (120, 50, 24, 2, false, 1);
 	write_blob_lines (code_win, 0, 47, blob, lc, lms);
 	box (code_win, 0, 0);
@@ -248,6 +323,19 @@ int main () {
 
 	WINDOW* watch_win = create_win (40, 30, 144, 2, true, 1);
 	WINDOW* st_win = create_win (40, 30, 144, 32, true, 1);
+	WINDOW* op_win = create_win (144, 10, 0, 52, false, 1);
+	wprintw (op_win, "debug output goes here1\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here2\n");
+	wprintw (op_win, "debug output goes here11\n");
+	wrefresh (op_win);
 	
 	long int x = 0, y = 0;
 	while (1) {
@@ -301,6 +389,7 @@ int main () {
 			write_blob_lines (code_win, y, 47 + y, blob, lc, lms);
 			box (code_win, 0, 0);
 			wrefresh (code_win);
+			redraw_line_nos (linno_win, y + 1, 48 + y);
 		}
 		
 	}
