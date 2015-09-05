@@ -12,8 +12,8 @@ GOALS (in priority order)
 
 MISSIONS
 1. super-fast text file loading and display with ncurses - MISSION ACCOMPLISHED
-2. invoke libgdb from same programme and start a session
-   * perhaps use argv[1] to specify executable
+2. invoke libgdb from same programme and start a session - MISSION ACCOMPLISHED
+   * perhaps use argv[1] to specify executable - DONE
 3. allow setting and unsetting of gdb breakpoints visually
    * keyboard
    * mouse
@@ -23,12 +23,19 @@ MISSIONS
 */
 
 /* TODO
-* rewrite/remove createwin wipewin
+* gdb output/input break-down to fit over x lines in scrolling box?
+* see if m/i does better output?
+* remove line numbers from src
+* left/right arrows or tab do focus shift
+* file name of current file from gdb
+* display --> perhaps shortcut rather than typing into gdb (later)
+* could just extract current lines from gdb every time rather than suffer the
+blob thing
 */
 
 #include "utils.h"
 #include "wins.h"
-//#include "apg_data_structures.h"
+#include "ipc.h"
 #include <ncurses.h>
 #include <stdio.h>
 #include <locale.h>
@@ -37,8 +44,7 @@ MISSIONS
 #include <stdlib.h>
 #include <string.h>
 
-#include <unistd.h>
-#include <sys/types.h>
+#define BIN "/usr/bin/gdb"
 
 /*
 http://invisible-island.net/ncurses/man/
@@ -59,34 +65,22 @@ int main (int argc, char** argv) {
 		return 1;
 	}
 
-//------- fork for gdb/mi
-	log_msg ("forking child process...\n");
-	int pipefd[2];
-	pid_t cpid;
-	char buf;
-	
-	pipe (pipefd); // create pipe
-	cpid = fork (); // duplicate this proc
-	if (cpid == 0) { // i am child
-		log_msg ("i am the child\n");
-		
-		// TODO -- start the child's function and separate log
-		// -- mirror all gdb output in said log to test it
-	
-		return 0;
-	} else { // i am parent
-	
-	}
-//-------
-
 	if (argc < 2) {
-		printf ("usage is ./exterminator my_text_file.c\n");
+		printf ("usage is ./exterminator target\n");
 		return 0;
 	}
-
+	
+	char** child_argv = NULL;
+	child_argv = (char**)malloc (sizeof (char*) * 2);
+	child_argv[0] = (char*)malloc (1024);
+	child_argv[1] = (char*)malloc (1024);
+	strcpy (child_argv[0], BIN);
+	strcpy (child_argv[1], argv[1]);
+	
 	setlocale (LC_ALL, "");
-
+	
 //--------
+#ifdef DONE_OTHER_STUFF
 	log_msg ("reading file %s\n", argv[1]);
 	long int sz = 0;
 	char* blob = read_entire_file (argv[1], &sz);
@@ -97,8 +91,8 @@ int main (int argc, char** argv) {
 	
 	Line_Meta* lms = get_line_meta_in_blob (blob, sz, lc);
 	assert (lms);
-	
-	//print_lines (lms, blob, lc);
+
+#endif
 //--------
 	
 	// start ncurses terminal
@@ -144,12 +138,14 @@ int main (int argc, char** argv) {
 	// title bar
 	write_title_bars ();
 	write_left_side_panel ();
+#ifdef DONE_OTHER_STUFF
 	// line numbers bar
 	redraw_line_nos (1, 49, lc);
 	// break points bar
 	redraw_bp_bar (0, 48, lc, lms);
 	// source text window
 	write_blob_lines (0, 48, blob, lc, lms, argv[1], 0);
+#endif
 	write_watch_panel (watch_list);
 	write_stack_panel (stack_list);
 
@@ -158,7 +154,18 @@ int main (int argc, char** argv) {
 	move (input_y, input_x);
 	// this need to be here before windows or it wont work
 	refresh ();
+	
+	//                              start gdb
+	// --------------------------------------------------------------------------
+	if (!start_ipc (child_argv)) {
+		return 1;
+	}
+	free (child_argv[0]);
+	free (child_argv[1]);
+	free (child_argv);
+	child_argv = NULL;
 
+#ifdef DONE_OTHER_STUFF
 	long int y = 0;
 	long int start_ln = 0;
 	while (1) {
@@ -246,6 +253,7 @@ int main (int argc, char** argv) {
 		}
 		
 	}
+#endif
 
 	// return to normal terminal
 	endwin ();

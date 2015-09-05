@@ -24,3 +24,6 @@ void write_watch_panel (SLL_Node* list_ptr);
 void write_stack_panel (SLL_Node* list_ptr);
 
 void write_title_bars ();
+
+void write_gdb_op (char* buffer);
+

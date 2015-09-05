@@ -64,6 +64,9 @@ void write_blob_lines (int startl, int endl, char* blob,
 	attron(COLOR_PAIR(6));
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
+	
+	// so writing next command is down there
+	move (52, 0);
 }
 
 // the line numbers vertical bar
@@ -184,5 +187,18 @@ void write_title_bars () {
 	mvprintw (0, 0, "//");
 	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses");
 	attroff (COLOR_PAIR(4));
+}
+
+void write_gdb_op (char* buffer) {
+	int y = 52, x = 0;
+	// clear area
+	//attron (COLOR_PAIR(1));
+	for (int i = 0; i < 25; i++) {
+		mvprintw (i + y, x, "%80c", ' ');
+	}
+	// x doesn't line up after each line break -- would have to split buffer
+	mvprintw (52, 0, buffer);
+	//attroff (COLOR_PAIR(1));
+	refresh ();
 }
 
