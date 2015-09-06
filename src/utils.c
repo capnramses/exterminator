@@ -138,11 +138,20 @@ void print_lines (Line_Meta* lms, char* blob, long int lc) {
 		long int cc = lms[i].cc;
 		long int offs = lms[i].offs;
 		assert (cc < 1023);
-		long int j;
+		bool trimmed = false;
+		long int j, t = 0;
 		for (j = 0; j < cc; j++) {
-			tmp[j] = blob[offs + j];
+			// trim gdb's line num and tab from start
+			if (!trimmed) {
+				if (blob[offs + j] == '\t') {
+					trimmed = true;
+				}
+				continue;
+			}
+			tmp[t] = blob[offs + j];
+			t++;
 		}
-		tmp[j] = '\0';
+		tmp[t] = '\0';
 		printf ("[%s]", tmp);
 	}
 }

@@ -15,7 +15,7 @@ MISSIONS
 2. invoke libgdb from same programme and start a session - MISSION ACCOMPLISHED
    * perhaps use argv[1] to specify executable - DONE
 3. allow setting and unsetting of gdb breakpoints visually
-   * keyboard
+   * keyboard -- PARTIAL
    * mouse
 4. file browsing/unload/load
    * keyboard
@@ -23,9 +23,17 @@ MISSIONS
 */
 
 /* TODO
+* unset breakpoint with spacebar
+* change toggle() to set() and unset()
+* step highlights current line (perhaps with another bar colour?)
+
+after sending a "next" gdb returns this string (easy to parse line num):
+"7		printf ("generating file of size %i\n", sz);"
+
+
+
 * gdb output/input break-down to fit over x lines in scrolling box?
 * see if m/i does better output?
-* remove line numbers from src
 * left/right arrows or tab do focus shift
 * file name of current file from gdb
 * display --> perhaps shortcut rather than typing into gdb (later)

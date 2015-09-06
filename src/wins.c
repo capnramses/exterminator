@@ -35,13 +35,22 @@ void write_blob_lines (int startl, int endl, char* blob,
 		//log_msg ("writing line %i) cc %i offs %i\n", i, cc, offs);
 		// chop trailing ends off
 		long int end = MIN (cc, 100);
-		long int j;
+		bool trimmed = false;
+		long int j, t = 0;
 		for (j = 0; j < end; j++) {
-			tmp[j] = blob[offs + j];
-			// prevent lines doing their own breaks in my formatting
-			if (tmp[j] == '\n') {
-				tmp[j] = '\0';
+			// trim gdb's line num and tab from start
+			if (!trimmed) {
+				if (blob[offs + j] == '\t') {
+					trimmed = true;
+				}
+				continue;
 			}
+			tmp[t] = blob[offs + j];
+			// prevent lines doing their own breaks in my formatting
+			if (tmp[t] == '\n') {
+				tmp[t] = '\0';
+			}
+			t++;
 		}
 		// terminate blank lines
 		tmp[j] = '\0';
@@ -66,7 +75,9 @@ void write_blob_lines (int startl, int endl, char* blob,
 	attroff(COLOR_PAIR(6));
 	
 	// so writing next command is down there
-	move (52, 0);
+	int input_y = 60;
+	int input_x = 2;
+	move (input_y, input_x);
 }
 
 // the line numbers vertical bar
