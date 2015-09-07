@@ -264,12 +264,14 @@ void parent_ipc (int pipes[][2]) {
 				if (next_line) {
 					*next_line = '\0'; // temporary stopper on the \n
 				}
-				if (strncmp ("Breakpoint", curr_line, strlen ("Breakpoint")) == 0) {
+				if (strstr (curr_line, "Breakpoint")) {
+					log_msg ("FOUND [%s]\n", curr_line);
 					int bpn = 0;
 					char addr_str[16];
 					char file_name[32]; // has comma at end to strip
 					long int line = -1;
-					int r = sscanf (curr_line, "Breakpoint %i at %s file %s line %li.\n",
+					//
+					int r = sscanf (curr_line, "~\"Breakpoint %i %s file %s line %li.\n\"\n",
 						&bpn, addr_str, file_name, &line);
 					// set a breakpoint
 					if (r == 4) {
@@ -280,8 +282,10 @@ void parent_ipc (int pipes[][2]) {
 						redraw_bp_bar (0, 48, lc, lms);
 					// running to a breakpoint
 					} else {
-					
+						log_msg ("r=%i\n", r);
 					}
+				} else {
+					log_msg ("curr line [%s]\n", curr_line);
 				}
 				// unstopper
 				if (next_line) {
