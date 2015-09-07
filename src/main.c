@@ -39,6 +39,7 @@ after sending a "next" gdb returns this string (easy to parse line num):
 * display --> perhaps shortcut rather than typing into gdb (later)
 * could just extract current lines from gdb every time rather than suffer the
 blob thing
+* warn if file size bigger than blob array size - or realloc or sthng
 */
 
 #include "utils.h"
@@ -51,6 +52,8 @@ blob thing
 #include <dirent.h> // directory contents POSIX systems
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
 #define BIN "/usr/bin/gdb"
 
@@ -78,197 +81,50 @@ int main (int argc, char** argv) {
 		return 0;
 	}
 	
-	char** child_argv = NULL;
-	child_argv = (char**)malloc (sizeof (char*) * 2);
-	child_argv[0] = (char*)malloc (1024);
-	child_argv[1] = (char*)malloc (1024);
-	strcpy (child_argv[0], BIN);
-	strcpy (child_argv[1], argv[1]);
+	// whine about terminal size
+	struct winsize w;
+	ioctl (STDOUT_FILENO, TIOCGWINSZ, &w);
+	if (w.ws_row < 50 || w.ws_col < 100) {
+		log_err ("your terminal is too small for //EXTERMINATOR\\\\\n"
+			"if you're in a window, try resizing to fullscreen or > 100 cols\n");
+		return 0;
+	}
 	
 	setlocale (LC_ALL, "");
+	start_ncurses_defaults ();
+	draw_defaults ();
 	
-//--------
-#ifdef DONE_OTHER_STUFF
-	log_msg ("reading file %s\n", argv[1]);
-	long int sz = 0;
-	char* blob = read_entire_file (argv[1], &sz);
-	assert (blob);
+	char** child_argv = NULL;
+	child_argv = (char**)malloc (sizeof (char*) * (argc + 2));
+	size_t len = strlen (BIN);
+	child_argv[0] = (char*)malloc (len + 1);
+	strcpy (child_argv[0], BIN);
+	for (int i = 1; i < argc; i++) {
+		len = strlen (argv[i]);
+		child_argv[i] = (char*)malloc (len + 1);
+		strcpy (child_argv[i], argv[i]);
+	}
+	len = strlen ("--interp=mi");
+	child_argv[argc] = (char*)malloc (len + 1);
+	strcpy (child_argv[argc], "--interp=mi");
+	// must have a null ptr at end of list or explodes
+	child_argv[argc + 1] = NULL;
 	
-	long int lc = count_lines_in_blob (blob, sz);
-	log_msg ("lines in blob is %li\n", lc);
-	
-	Line_Meta* lms = get_line_meta_in_blob (blob, sz, lc);
-	assert (lms);
-
-#endif
-//--------
-	
-	// start ncurses terminal
-	initscr ();
-
-	/*
-	COLOR_BLACK   0
- 	COLOR_RED     1
- 	COLOR_GREEN   2
- 	COLOR_YELLOW  3
- 	COLOR_BLUE    4
- 	COLOR_MAGENTA 5
- 	COLOR_CYAN    6
-	COLOR_WHITE   7
-	*/
-	// rgb 0-1000
-	
-	set_tabsize (2);
-	start_color ();
-	// get unbuffered input and disable ctrl-z, ctrl-c
-	raw ();
-	// stop echoing user input
-	//noecho ();
-	// enable F1 etc.
-	keypad (stdscr, TRUE);
-	init_pair (1, COLOR_WHITE, COLOR_BLUE); // src, line #s
-	init_pair (2, COLOR_WHITE, COLOR_BLACK); // borders, bp bar
-	init_pair (3, COLOR_BLACK, COLOR_RED); // red break points
-	init_pair (4, COLOR_BLACK, COLOR_WHITE); // side panels
-	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
-	init_pair (6, COLOR_RED, COLOR_WHITE); // title bars
-	
-	// set-up watch list
-	SLL_Node* watch_list = NULL;
-	add_to_watch ("input_y", "60", &watch_list);
-	add_to_watch ("input_x", "2", &watch_list);
-	// and stack list
-	SLL_Node* stack_list = NULL;
-	//add_to_stack ("hmm", &stack_list);
-	add_to_stack ("#0  main (argc=1, argv=0x7fffffffde98) at src/main.c:55",
-		&stack_list);
-	
-	// title bar
-	write_title_bars ();
-	write_left_side_panel ();
-#ifdef DONE_OTHER_STUFF
-	// line numbers bar
-	redraw_line_nos (1, 49, lc);
-	// break points bar
-	redraw_bp_bar (0, 48, lc, lms);
-	// source text window
-	write_blob_lines (0, 48, blob, lc, lms, argv[1], 0);
-#endif
-	write_watch_panel (watch_list);
-	write_stack_panel (stack_list);
-
-	int input_y = 60;
-	int input_x = 2;
-	move (input_y, input_x);
-	// this need to be here before windows or it wont work
-	refresh ();
-	
-	//                              start gdb
-	// --------------------------------------------------------------------------
 	if (!start_ipc (child_argv)) {
 		return 1;
 	}
-	free (child_argv[0]);
-	free (child_argv[1]);
-	free (child_argv);
-	child_argv = NULL;
-
-#ifdef DONE_OTHER_STUFF
-	long int y = 0;
-	long int start_ln = 0;
-	while (1) {
-		// can use this to wait only 1/10s for user input
-		// halfdelay()
-
-		// print to back buffer
-		// flip buffers
-		//refresh ();
-
-		int c = getch ();
-		// quit on ESC
-		if (27 == c) {
-			break;
-		}
-		
-		bool lchange = false;
-		// keys list http://www.gnu.org/software/guile-ncurses/manual/html_node/Getting-characters-from-the-keyboard.html
-		switch (c) {
-			case KEY_UP: {
-				// move line cursor
-				if (y > 0) {
-					y--;
-					lchange = true;
-				// scroll page
-				} else {
-					if (start_ln > 0) {
-						start_ln--;
-						lchange = true;
-					}
-				}
-				break;
-			}
-			case KEY_DOWN: {
-				// move line cursor
-				// not past end of doc even if room on pg
-				if (start_ln + y < lc - 1) {
-					if (y < 48) {
-						y++;
-						lchange = true;
-					// scroll page
-					} else {
-						if (start_ln < lc - 1) {
-							start_ln++;
-							lchange = true;
-						}
-					}
-				}
-				break;
-			}
-			case KEY_NPAGE: {
-				start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
-				lchange = true;
-				break;
-			}
-			case KEY_PPAGE: {
-				start_ln = MAX (start_ln - 50, 0);
-				lchange = true;
-				break;
-			}
-			case 32: {
-				assert (toggle_bp (lms, y + start_ln, lc));
-				lchange = true;
-				break;
-			}
-			default: {}
-		}
-		
-		if (lchange) {
-			erase ();
-			
-			write_title_bars ();
-			write_left_side_panel ();
-			// line numbers bar
-			redraw_line_nos (start_ln + 1, start_ln + 49, lc);
-			// break points bar
-			redraw_bp_bar (start_ln, start_ln + 48, lc, lms);
-			// source text window
-			write_blob_lines (start_ln, start_ln + 48, blob, lc, lms, argv[1],
-				start_ln + y);
-			write_watch_panel (watch_list);
-			write_stack_panel (stack_list);
-			move (input_y, input_x);
-			refresh ();
-		}
-		
+	
+	for (int i = 0; i < argc + 1; i++) {
+		assert (child_argv[i]);
+		//free (child_argv[i]);
+		child_argv[i] = NULL;
 	}
-#endif
+	assert (child_argv);
+	//free (child_argv);
+	child_argv = NULL;
 
 	// return to normal terminal
 	endwin ();
-	
-	// free mem
-	// --------
-
 
 	return 0;
 }

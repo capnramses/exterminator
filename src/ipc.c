@@ -7,6 +7,7 @@
 #include "ipc.h"
 #include "utils.h"
 #include "wins.h"
+#include "parse.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h> //pid_t i guess
@@ -40,6 +41,18 @@ bool start_ipc (char** argv) {
 	
 	// child
 	if (0 == pid) {
+		log_msg ("starting child with:[");
+		int n = 0;
+		char* p = argv[n];
+		while (p) {
+			if (n > 0) {
+				log_msg (" ");
+			}
+			log_msg ("%s", p);
+			n++;
+			p = argv[n];
+		}
+		log_msg ("]\n");
 		child_ipc (pipes, argv);
 	// parent
 	} else {
@@ -69,59 +82,39 @@ void child_ipc (int pipes[][2], char** argv) {
 }
 
 void parent_ipc (int pipes[][2]) {
-	char buffer[4096], blob[4096];
-	char input_buff[256];
-	input_buff[0] = '\0';
-	int input_l = 0;
+	char buffer[4096], blob[262144];
+	char ip_buff[MAX_OP_STR], op_buff[MAX_OP_STR];
+	int input_l = 0, op_len = 0;
+	blob[0] = ip_buff[0] = op_buff[0] = '\0';
 		
 	// close unneeded fds
 	close (pipes[1][0]); // child's reading end
 	close (pipes[0][1]); // child's writing end
 
-	// wait for child's exec to get going
-	sleep (1);
-	
-	// TODO
-	// before normal loop do
-	// 1. "ls" to fetch buffer for first text and code lines windows
-	
-	{ // get the boring intro and don't display it
-		buffer[0] = '\0';
-		int count = read (pipes[0][0], buffer, sizeof (buffer) - 1);
-		if (count > 0) {
-			buffer[count] = 0;
-			log_msg ("%s", buffer);
-		}
-	}
+	// get the boring intro and don't display it
+	read_child (pipes[0][0], op_buff);
 
 	Line_Meta* lms = NULL;
+	long int lc = 0;
 	{ // send "list" for default file
-		write (pipes[1][1], "set listsize unlimited\n", 23);
-		blob[0] = '\0';
-		read (pipes[0][0], blob, sizeof (blob) - 1);
-		write (pipes[1][1], "list\n", 5);
-		blob[0] = '\0';
-		int count = read (pipes[0][0], blob, sizeof (blob) - 1);
-		if (count > 0) {
-			blob[count] = 0;
-			log_msg ("%s", blob);
-		}
-		long int lc = count_lines_in_blob (blob, count + 1);
+		write_child (pipes[1][1], "set listsize unlimited\n");
+		read_child (pipes[0][0], op_buff);
+		write_child (pipes[1][1], "list\n");
+		op_len = read_child (pipes[0][0], blob);
+		
+		lc = count_lines_in_blob (blob, op_len + 1);
 		log_msg ("lines in file is %li\n", lc);
-		lms = get_line_meta_in_blob (blob, count + 1, lc);
+		lms = get_line_meta_in_blob (blob, op_len + 1, lc);
 		assert (lms);
-		write_blob_lines (0, 49, blob, lc, lms, "???", 0);
+		write_blob_lines (0, 48, blob, lc, lms, "???", 0);
 		log_msg ("wrote em\n");
-		redraw_line_nos (1, 48, lc);
-		redraw_bp_bar (0, 49, lc, lms);
-		int input_y = 60;
-		int input_x = 2;
-		move (input_y, input_x);
+		redraw_line_nos (1, 49, lc);
+		redraw_bp_bar (0, 48, lc, lms);
+		move (CURS_Y, CURS_X);
+		refresh ();
 	}
 
 	long int y = 0, start_ln = 0;
-	// HACK TODO: fix later. maybe code goes elsewhere?
-	long int lc = 25;
 	while (1) {
 		buffer[0] = '\0';
 
@@ -158,15 +151,15 @@ void parent_ipc (int pipes[][2]) {
 				} else
 				// ignore invalid keys
 				if (c > 31 && c < 128) {
-					input_buff[input_l] = c;
+					ip_buff[input_l] = c;
 					input_l++;
 					collected = true;
 				} else
 				// submit buffer on enter key
 				if (c == '\n') {
-					input_buff[input_l] = '\n';
+					ip_buff[input_l] = '\n';
 					input_l++;
-					input_buff[input_l] = '\0';
+					ip_buff[input_l] = '\0';
 					input_l = 0;
 					collecting = false;
 					collected = true;
@@ -190,7 +183,7 @@ void parent_ipc (int pipes[][2]) {
 							lchange = true;
 						}
 					}
-					write_blob_lines (0, 49, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, "???", y);
 					break;
 				}
 				case KEY_DOWN: {
@@ -208,35 +201,35 @@ void parent_ipc (int pipes[][2]) {
 							}
 						}
 					}
-					write_blob_lines (0, 49, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, "???", y);
 					break;
 				}
 				case KEY_NPAGE: {
 					start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
 					lchange = true;
-					write_blob_lines (0, 49, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, "???", y);
 					break;
 				}
 				case KEY_PPAGE: {
 					start_ln = MAX (start_ln - 50, 0);
 					lchange = true;
-					write_blob_lines (0, 49, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, "???", y);
 					break;
 				}
 				case 32: {
-					sprintf (input_buff, "break %li\n", y + 1);
+					sprintf (ip_buff, "break %li\n", y + 1);
 					lchange = true;
 					collecting = false;
 					break;
 				}
 				case 's': {
-					sprintf (input_buff, "step\n");
+					sprintf (ip_buff, "step\n");
 					lchange = true;
 					collecting = false;
 					break;
 				}
 				case 'n': {
-					sprintf (input_buff, "next\n");
+					sprintf (ip_buff, "next\n");
 					lchange = true;
 					collecting = false;
 					break;
@@ -247,19 +240,17 @@ void parent_ipc (int pipes[][2]) {
 			} // switch
 			
 			if (lchange) {
-				int input_y = 60;
-				int input_x = 2;
-				move (input_y, input_x);
+				move (CURS_Y, CURS_X);
 				refresh ();
 			}
 		} // while collecting input
 		
-		write (pipes[1][1], input_buff, strlen (input_buff));
-		log_msg ("-->[%s]\n", input_buff);
+		write_child (pipes[1][1], ip_buff);
+		log_msg ("-->[%s]\n", ip_buff);
 		
-		int count = read (pipes[0][0], buffer, sizeof (buffer) - 1);
-		if (count > 0) {
-			buffer[count] = 0;
+		op_len = read_child (pipes[0][0], op_buff);
+		if (op_len > 0) {
+			buffer[op_len] = 0;
 			log_msg ("%s", buffer);
 			write_gdb_op (buffer);
 			
@@ -286,7 +277,7 @@ void parent_ipc (int pipes[][2]) {
 							line);
 						// TODO NOTE: assuming same file here
 						assert (toggle_bp (lms, line - 1, lc));
-						redraw_bp_bar (0, 49, lc, lms);
+						redraw_bp_bar (0, 48, lc, lms);
 					// running to a breakpoint
 					} else {
 					
@@ -304,4 +295,37 @@ void parent_ipc (int pipes[][2]) {
 	} // while
 	
 } // func
+
+void write_child (int pipe, const char* input) {
+	long int len = strlen (input);
+	log_msg ("ip:[%s]\n", input);
+	write (pipe, input, len);
+}
+
+long int read_child (int pipe, char* output) {
+	char tmp[MAX_OP_STR];
+	long int len = 0;
+	memset (output, 0, MAX_OP_STR);
+	memset (tmp, 0, MAX_OP_STR);
+	long int count = read (pipe, tmp, MAX_OP_STR - 1);
+	bool term_fnd = false;
+	while (!term_fnd) {
+		strcat (output, tmp);
+		len += count;
+		if (strstr (output, "(gdb) \n")) {
+			term_fnd = true;
+		}
+		if (!term_fnd) {
+			// needed this or read kept all the old non-null chars after \0 !!
+			memset (tmp, 0, MAX_OP_STR);
+			count = read (pipe, tmp, MAX_OP_STR - 1);
+		}
+	}
+	tmp[len] = '\0';
+	if (len > 0) {
+		output[len] = 0;
+		log_msg ("op:[%s]\n", output);
+	}
+	return len;
+}
 

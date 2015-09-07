@@ -10,6 +10,66 @@
 #include <stdlib.h>
 #include <string.h>
 
+void start_ncurses_defaults () {
+	// return to normal terminal whenever we exit -- sanity!
+	atexit (nice_exit);
+
+	initscr ();
+
+	/*
+	COLOR_BLACK   0
+	COLOR_RED     1
+	COLOR_GREEN   2
+	COLOR_YELLOW  3
+	COLOR_BLUE    4
+	COLOR_MAGENTA 5
+	COLOR_CYAN    6
+	COLOR_WHITE   7
+	*/
+	// rgb 0-1000
+	
+	set_tabsize (2);
+	start_color ();
+	// get unbuffered input and disable ctrl-z, ctrl-c
+	//raw ();
+	// stop echoing user input
+	//noecho ();
+	// enable F1 etc.
+	keypad (stdscr, TRUE);
+	init_pair (1, COLOR_WHITE, COLOR_BLUE); // src, line #s
+	init_pair (2, COLOR_WHITE, COLOR_BLACK); // borders, bp bar
+	init_pair (3, COLOR_BLACK, COLOR_RED); // red break points
+	init_pair (4, COLOR_BLACK, COLOR_WHITE); // side panels
+	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
+	init_pair (6, COLOR_RED, COLOR_WHITE); // title bars
+}
+
+void nice_exit () {
+	endwin ();
+}
+
+void draw_defaults () {
+	// set-up watch list
+	SLL_Node* watch_list = NULL;
+	add_to_watch ("input_y", "60", &watch_list);
+	add_to_watch ("input_x", "2", &watch_list);
+	// and stack list
+	SLL_Node* stack_list = NULL;
+	//add_to_stack ("hmm", &stack_list);
+	add_to_stack ("#0  main (argc=1, argv=0x7fffffffde98) at src/main.c:55",
+		&stack_list);
+	
+	// title bar
+	write_title_bars ();
+	write_left_side_panel ();
+	write_watch_panel (watch_list);
+	write_stack_panel (stack_list);
+
+	move (CURS_Y, CURS_X);
+	// this need to be here before windows or it wont work
+	refresh ();
+}
+
 // start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms, const char* file_name, int highlighted_line) {
@@ -32,19 +92,11 @@ void write_blob_lines (int startl, int endl, char* blob,
 		}
 		long int cc = lms[i].cc;
 		long int offs = lms[i].offs;
-		//log_msg ("writing line %i) cc %i offs %i\n", i, cc, offs);
 		// chop trailing ends off
 		long int end = MIN (cc, 100);
-		bool trimmed = false;
 		long int j, t = 0;
 		for (j = 0; j < end; j++) {
 			// trim gdb's line num and tab from start
-			if (!trimmed) {
-				if (blob[offs + j] == '\t') {
-					trimmed = true;
-				}
-				continue;
-			}
 			tmp[t] = blob[offs + j];
 			// prevent lines doing their own breaks in my formatting
 			if (tmp[t] == '\n') {
@@ -71,13 +123,9 @@ void write_blob_lines (int startl, int endl, char* blob,
 	//box (win, 0, 0);
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
-	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1, lc);
+	mvprintw (y - 1, x, "%s line (%i/%li)\n", file_name, highlighted_line + 1, lc);
 	attroff(COLOR_PAIR(6));
-	
-	// so writing next command is down there
-	int input_y = 60;
-	int input_x = 2;
-	move (input_y, input_x);
+	move (CURS_Y, CURS_X);
 }
 
 // the line numbers vertical bar

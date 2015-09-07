@@ -9,6 +9,16 @@
 #include "utils.h"
 #include <ncurses.h>
 
+// default cursor/prompt position
+#define CURS_X 0
+#define CURS_Y 60
+
+void start_ncurses_defaults ();
+
+void nice_exit ();
+
+void draw_defaults ();
+
 // start line is 0 but will be displayed as 1 in side bar
 void write_blob_lines (int startl, int endl, char* blob,
 	long int lc, Line_Meta* lms, const char* file_name, int highlighted_line);

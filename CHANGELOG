@@ -1,0 +1,11 @@
+7 sept 2015 - anton
+* added terminal size detection to start of main
+* disabled raw() input -- no longer need sleep(1) in IPC
+* tidied most code
+* reading function that always does sleep(1)
+* switched to m/i
+* rewrote blob reader to suit m/i (almost finished)
+* adjusted line number blob printout
+* fixed error in ptr mult in malloc (not in parenths)
+* better erm thingy thing forgot what i was writing
+* technically functional - can start debugging crongdor

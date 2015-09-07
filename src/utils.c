@@ -93,14 +93,17 @@ char* read_entire_file (const char* file_name, long int* sz) {
 // count lines in a blob
 long int count_lines_in_blob (char* blob, long int sz) {
 	long int lc = 0;
+	bool start_of_line = true;
 	for (long int i = 0; i < sz; i++) {
-		if (blob[i] == '\n') {
-			lc++;
+		if (start_of_line) {
+			if (blob[i] == '~') {
+				lc++;
+			}
+			start_of_line = false;
 		}
-	}
-	// add first line too!
-	if (sz > 0) {
-		//lc++;
+		if (blob[i] == '\n') {
+			start_of_line = true;
+		}
 	}
 	
 	return lc;
@@ -116,15 +119,45 @@ Line_Meta* get_line_meta_in_blob (char* blob, long int sz, long int lc) {
 	int l = 0;
 	int c = 0;
 	int o = 0;
+	int num_trim = 0;
+	bool start_of_line = true;
+	bool code_line = false;
+	bool found_num_end = false;
 	for (long int i = 0; i < sz; i++) {
+		// skip non-code lines
+		if (start_of_line) {
+			c = 0;
+			if (blob[i] == '~') {
+				code_line = true;
+				found_num_end = false;
+				num_trim = 0;
+				o = i;
+			} else {
+				code_line = false;
+			}
+			start_of_line = false;
+		}
+		// TODO replace tabs with spaces
+		
+		// TODO escape chars
+
+		if (code_line && !found_num_end) {
+			if (blob[i] == '\\') {
+				found_num_end = true;
+			} else {
+				num_trim++;
+			}
+		}
+		
 		c++;
 		if (blob[i] == '\n') {
-			lms[l].cc = c;
-			lms[l].offs = o;
+			if (code_line) {
+				lms[l].cc = c - 6 - num_trim; // trim \ and n, two quotes, and line start char
+				lms[l].offs = o + 2 + num_trim;
+				l++;
+			}
 			// next line starts on the next char
-			o = i + 1;
-			c = 0;
-			l++;
+			start_of_line = true;
 		}
 	}
 	

@@ -14,3 +14,6 @@ void child_ipc (int pipes[][2], char** argv);
 
 void parent_ipc (int pipes[][2]);
 
+void write_child (int pipe, const char* input);
+
+long int read_child (int pipe, char* output);
