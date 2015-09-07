@@ -11,3 +11,6 @@
 * technically functional - can start debugging crongdor
 * basic colour change for whole-line comments
 * breakpoint set working again -- parsing function in parse.c
+* command bar (g)db (s)tep (or space) (n)ext (r)un (or f5)
+* properly clear bkgrnd
+* backspace removes last char from buffer

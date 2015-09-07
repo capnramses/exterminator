@@ -82,10 +82,10 @@ void child_ipc (int pipes[][2], char** argv) {
 }
 
 void parent_ipc (int pipes[][2]) {
-	char buffer[4096], blob[262144];
+	char file_text_buff[262144];
 	char ip_buff[MAX_OP_STR], op_buff[MAX_OP_STR];
 	int input_l = 0, op_len = 0;
-	blob[0] = ip_buff[0] = op_buff[0] = '\0';
+	file_text_buff[0] = ip_buff[0] = op_buff[0] = '\0';
 		
 	// close unneeded fds
 	close (pipes[1][0]); // child's reading end
@@ -102,33 +102,38 @@ void parent_ipc (int pipes[][2]) {
 		write_child (pipes[1][1], "set listsize unlimited\n");
 		read_child (pipes[0][0], op_buff);
 		write_child (pipes[1][1], "list\n");
-		op_len = read_child (pipes[0][0], blob);
+		op_len = read_child (pipes[0][0], file_text_buff);
 		
-		lc = count_lines_in_blob (blob, op_len + 1);
+		lc = count_lines_in_blob (file_text_buff, op_len + 1);
 		log_msg ("lines in file is %li\n", lc);
-		lms = get_line_meta_in_blob (blob, op_len + 1, lc);
+		lms = get_line_meta_in_blob (file_text_buff, op_len + 1, lc);
 		assert (lms);
 		
 		write_child (pipes[1][1], "info source\n");
 		read_child (pipes[0][0], op_buff);
 		parse_source_file_name (op_buff, curr_source_file_name);
 		
-		write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, 0);
-		log_msg ("wrote em\n");
+		write_blob_lines (0, 48, file_text_buff, lc, lms, curr_source_file_name,
+			0);
 		redraw_line_nos (1, 49, lc);
 		redraw_bp_bar (0, 48, lc, lms);
+		attron (COLOR_PAIR(2));
+		mvprintw (CURS_Y, 0, "%100c", ' ');
+		attroff (COLOR_PAIR(2));
 		move (CURS_Y, CURS_X);
 		refresh ();
 	}
 
 	long int y = 0, start_ln = 0;
+	bool gdb_entry = false;
 	while (1) {
-		buffer[0] = '\0';
-
 		bool collecting = true;
-		bool gdb_entry = false;
 		int c = 0;
 		while (collecting) {
+			if (gdb_entry) {
+				attron (COLOR_PAIR(8));
+			}
+		
 			c = getch ();
 			
 			bool collected = false;
@@ -145,7 +150,9 @@ void parent_ipc (int pipes[][2]) {
 				gdb_entry = true;
 				collected = false;
 				input_l = 0;
-				mvprintw (50, 0, "(gdb) \n");
+				mvprintw (CURS_Y - 1, 0, "(gdb) mode - press ESC to leave.\n");
+				attron (COLOR_PAIR(8));
+				echo ();
 				continue;
 			}
 			
@@ -155,22 +162,35 @@ void parent_ipc (int pipes[][2]) {
 					gdb_entry = false;
 					collected = false;
 					input_l = 0; // reset buffer
-					mvprintw (50, 0, "leaving gdb command entry\n");
-				} else
+					noecho ();
+					attroff (COLOR_PAIR(8));
+					mvprintw (CURS_Y - 1, 0, "leaving gdb command entry\n");
 				// ignore invalid keys
-				if (c > 31 && c < 128) {
+				} else if (c > 31 && c < 128) {
 					ip_buff[input_l] = c;
 					input_l++;
 					collected = true;
-				} else
+				// backspace
+				} else if (c == KEY_BACKSPACE) {
+					log_msg ("backspace\n");
+					if (input_l > 0) {
+						ip_buff[input_l - 1] = 0;
+						input_l--;
+						log_msg ("backspace ss\n");
+					}
 				// submit buffer on enter key
-				if (c == '\n') {
+				} else if (c == '\n') {
 					ip_buff[input_l] = '\n';
 					input_l++;
 					ip_buff[input_l] = '\0';
 					input_l = 0;
 					collecting = false;
 					collected = true;
+					// clear the line
+					attroff (COLOR_PAIR(8));
+					attron (COLOR_PAIR(2));
+					mvprintw (CURS_Y, 0, "%100c", ' ');
+					attroff (COLOR_PAIR(2));
 					break;
 					// TODO perhaps if buffer emtpy don't send or gdb won't reply
 				} // if
@@ -191,7 +211,8 @@ void parent_ipc (int pipes[][2]) {
 							lchange = true;
 						}
 					}
-					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
+					write_blob_lines (0, 48, file_text_buff, lc, lms,
+						curr_source_file_name, y);
 					break;
 				}
 				case KEY_DOWN: {
@@ -209,23 +230,32 @@ void parent_ipc (int pipes[][2]) {
 							}
 						}
 					}
-					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
+					write_blob_lines (0, 48, file_text_buff, lc, lms,
+						curr_source_file_name, y);
 					break;
 				}
 				case KEY_NPAGE: {
 					start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
 					lchange = true;
-					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
+					write_blob_lines (0, 48, file_text_buff, lc, lms,
+						curr_source_file_name, y);
 					break;
 				}
 				case KEY_PPAGE: {
 					start_ln = MAX (start_ln - 50, 0);
 					lchange = true;
-					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
+					write_blob_lines (0, 48, file_text_buff, lc, lms,
+						curr_source_file_name, y);
 					break;
 				}
-				case 32: {
+				case 'b': {
 					sprintf (ip_buff, "break %li\n", y + 1);
+					lchange = true;
+					collecting = false;
+					break;
+				}
+				case 32: { // spacebar
+					sprintf (ip_buff, "step\n");
 					lchange = true;
 					collecting = false;
 					break;
@@ -257,7 +287,7 @@ void parent_ipc (int pipes[][2]) {
 		
 		op_len = read_child (pipes[0][0], op_buff);
 		
-		if (32 == c) {
+		if ('b' == c) {
 			char fn[256];
 			memset (fn, 0, 256);
 			int line = 0;
@@ -265,6 +295,9 @@ void parent_ipc (int pipes[][2]) {
 			// TODO -- toggle to set/unset
 			toggle_bp (lms, line - 1, lc);
 			redraw_bp_bar (0, 48, lc, lms);
+		} else {
+			// TODO format, line-split, scroll
+			write_gdb_op (op_buff);
 		}
 		
 		// ... TODO

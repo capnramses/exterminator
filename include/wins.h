@@ -11,7 +11,7 @@
 
 // default cursor/prompt position
 #define CURS_X 0
-#define CURS_Y 60
+#define CURS_Y 52
 
 void start_ncurses_defaults ();
 
@@ -36,4 +36,3 @@ void write_stack_panel (SLL_Node* list_ptr);
 void write_title_bars ();
 
 void write_gdb_op (char* buffer);
-

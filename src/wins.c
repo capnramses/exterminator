@@ -32,9 +32,9 @@ void start_ncurses_defaults () {
 	set_tabsize (2);
 	start_color ();
 	// get unbuffered input and disable ctrl-z, ctrl-c
-	//raw ();
+	raw ();
 	// stop echoing user input
-	//noecho ();
+	noecho ();
 	// enable F1 etc.
 	keypad (stdscr, TRUE);
 	init_pair (1, COLOR_WHITE, COLOR_BLUE); // src, line #s
@@ -44,6 +44,7 @@ void start_ncurses_defaults () {
 	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
 	init_pair (6, COLOR_RED, COLOR_WHITE); // title bars
 	init_pair (7, COLOR_YELLOW, COLOR_BLUE); // comments in src
+	init_pair (8, COLOR_BLACK, COLOR_RED); // debug op
 }
 
 void nice_exit () {
@@ -263,20 +264,21 @@ void write_title_bars () {
 	attroff (COLOR_PAIR(6));
 	attron (COLOR_PAIR(4));
 	mvprintw (0, 0, "//");
-	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses");
+	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses                        "
+		"(B)reakpoint (spacebar/S)tep (N)ext (G)DB %112c\n", ' ');
 	attroff (COLOR_PAIR(4));
 }
 
 void write_gdb_op (char* buffer) {
-	int y = 52, x = 0;
 	// clear area
-	//attron (COLOR_PAIR(1));
+	attron (COLOR_PAIR(2));
 	for (int i = 0; i < 25; i++) {
-		mvprintw (i + y, x, "%80c", ' ');
+		mvprintw (i + CURS_Y + 1, 0, "%100c", ' ');
 	}
 	// x doesn't line up after each line break -- would have to split buffer
-	mvprintw (52, 0, buffer);
-	//attroff (COLOR_PAIR(1));
+	mvprintw (CURS_Y + 1, 0, buffer);
+	attroff (COLOR_PAIR(2));
 	refresh ();
+	move (CURS_Y, CURS_X);
 }
 

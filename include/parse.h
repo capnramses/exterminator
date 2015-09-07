@@ -6,7 +6,7 @@
 
 #pragma once
 
-#define MAX_OP_STR 4096
+#define MAX_OP_STR 8192
 
 // types of gdb m/i output
 enum mi_type {

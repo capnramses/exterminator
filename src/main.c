@@ -20,26 +20,35 @@ MISSIONS
 4. file browsing/unload/load
    * keyboard
    * mouse
+5  visual stepping/focuse of code on spacebar or sthng easy
 */
 
 /* TODO
+GDB Mode
+--------
+* format strings before printing
+* scroll with spacebar?
+* move to rhs so can be longer?
+
+GUI Overall
+-----------
+* left/right arrows or tab do focus shift
+* display files in lhs
+
+Debugging
+---------
+* arbitrary KEY "COMMAND STRING" bindings file?
 * unset breakpoint with spacebar
 * change toggle() to set() and unset()
 * step highlights current line (perhaps with another bar colour?)
+*/
 
-after sending a "next" gdb returns this string (easy to parse line num):
-"7		printf ("generating file of size %i\n", sz);"
-
-
-
-* gdb output/input break-down to fit over x lines in scrolling box?
-* see if m/i does better output?
-* left/right arrows or tab do focus shift
-* file name of current file from gdb
-* display --> perhaps shortcut rather than typing into gdb (later)
-* could just extract current lines from gdb every time rather than suffer the
-blob thing
-* warn if file size bigger than blob array size - or realloc or sthng
+/* IDEAS
+* http://invisible-island.net/ncurses/man/
+* http://tldp.org/HOWTO/NCURSES-Programming-HOWTO/
+* ncursesw "wide" lib for wchars
+* changing the background colour of a window can make stuff flash for attention
+* test with 1GB source file -- will need malloc instead of blob static mem
 */
 
 #include "utils.h"
@@ -56,20 +65,6 @@ blob thing
 #include <sys/ioctl.h>
 
 #define BIN "/usr/bin/gdb"
-
-/*
-http://invisible-island.net/ncurses/man/
-http://tldp.org/HOWTO/NCURSES-Programming-HOWTO/
-windows
-pads (for windows with big scrolling contents)
-panels (overlapping windows)
-ncursesw "wide" lib for wchars
-menus library
-chgat - changes some but not all characters after cursor (for fuck's sake)
-
-changing the background colour of a window can make stuff flash for attention
-
-*/
 
 int main (int argc, char** argv) {
 	if (!restart_log ()) {
