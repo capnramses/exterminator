@@ -5,6 +5,7 @@
 //
 
 #include "wins.h"
+#include "parse.h"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -42,6 +43,7 @@ void start_ncurses_defaults () {
 	init_pair (4, COLOR_BLACK, COLOR_WHITE); // side panels
 	init_pair (5, COLOR_BLUE, COLOR_CYAN); // current src line
 	init_pair (6, COLOR_RED, COLOR_WHITE); // title bars
+	init_pair (7, COLOR_YELLOW, COLOR_BLUE); // comments in src
 }
 
 void nice_exit () {
@@ -106,16 +108,32 @@ void write_blob_lines (int startl, int endl, char* blob,
 		}
 		// terminate blank lines
 		tmp[j] = '\0';
+		char tmp2[101];
+		memset (tmp2, 0, 101);
+		extract_mi_line (tmp, tmp2);
 		//printf ("[%s]", tmp);
+		
+		bool is_comment = false;
+		char a, b;
+		int r = sscanf (tmp2, " %c%c", &a, &b);
+		if (r == 2 && a == '/' && b == '/') {
+			is_comment = true;
+		}
 		
 		if (highlighted_line == i) {
 			attroff(COLOR_PAIR(1));
 			attron(COLOR_PAIR(5));
-			mvprintw (y + n, x, "%-100s", tmp);
+			mvprintw (y + n, x, "%-100s", tmp2);
 			attroff(COLOR_PAIR(5));
 			attron(COLOR_PAIR(1));
+		} else if (is_comment) {
+			attroff(COLOR_PAIR(1));
+			attron(COLOR_PAIR(7));
+			mvprintw (y + n, x, "%-100s", tmp2);
+			attroff(COLOR_PAIR(7));
+			attron(COLOR_PAIR(1));
 		} else {
-			mvprintw (y + n, x, "%s", tmp);
+			mvprintw (y + n, x, "%s", tmp2);
 		}
 		n++;
 	}
@@ -167,6 +185,7 @@ void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms) {
 	}
 	
 	attroff (COLOR_PAIR(2));
+	move (CURS_Y, CURS_X);
 }
 
 void write_left_side_panel () {

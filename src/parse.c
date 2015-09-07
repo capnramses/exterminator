@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 
 /* TO SUPPORT
 * info sources or just dir list?
@@ -109,5 +111,65 @@ void extract_mi_line (const char* input, char output[]) {
 			"(%i/%i)\n", (int)op_len, MAX_OP_STR);
 		exit (1);
 	}
+}
+
+void parse_source_file_name (const char* input, char* output) {
+	//~"Current source file is genascii.c\n"
+	
+	long int len = strlen (input);
+	long int line_start = 0;
+	for (long int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			char tmp[128];
+			int k = 0;
+			for (long int j = line_start; j <= i; j++) {
+				tmp[k] = input[j];
+				k++;
+			}
+			tmp[k] = 0;
+			if (strstr (tmp, "Current source file")) {
+				sscanf (tmp, "~\"Current source file is %s", output);
+				long int llen = strlen (output);
+				output[llen - 1] = output[llen - 2] = output[llen - 3] = 0;
+				return;
+			}
+			
+			line_start = i + 1;
+		}
+	}
+	log_err ("ERROR: did not find source name in op\n");
+	exit (1);
+}
+
+void parse_breakpoint (const char* input, char* file_name, int* line) {
+	// ~"Breakpoint 1 at 0x40077c: file genascii.c, line 15.\n"
+	// =breakpoint-created,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x000000000040077c",func="main",file="genascii.c",fullname="/home/anton/projects/exterminator/genascii.c",line="15",thread-groups=["i1"],times="0",original-location="/home/anton/projects/exterminator/genascii.c:15"}
+	long int len = strlen (input);
+	long int line_start = 0;
+	for (long int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			char tmp[128];
+			int k = 0;
+			for (long int j = line_start; j <= i; j++) {
+				tmp[k] = input[j];
+				k++;
+			}
+			tmp[k] = 0;
+			if (strstr (tmp, "~\"Breakpoint ")) {
+				int bnum = 0;
+				char addr_str[32];
+				int r = sscanf (tmp, "~\"Breakpoint %i at %s file %s line %i.\\n\"",
+					&bnum, addr_str, file_name, line);
+				int llen = strlen (file_name);
+				file_name[llen - 1] = 0;
+				log_err (tmp);
+				assert (r == 4);
+				return;
+			}
+			line_start = i + 1;
+		}
+	}
+	log_err ("ERROR: did not find source name in op\n");
+	exit (1);
 }
 

@@ -152,8 +152,8 @@ Line_Meta* get_line_meta_in_blob (char* blob, long int sz, long int lc) {
 		c++;
 		if (blob[i] == '\n') {
 			if (code_line) {
-				lms[l].cc = c - 6 - num_trim; // trim \ and n, two quotes, and line start char
-				lms[l].offs = o + 2 + num_trim;
+				lms[l].cc = c - 3 - num_trim; // trim \ and n, two quotes, and line start char
+				lms[l].offs = o + num_trim;
 				l++;
 			}
 			// next line starts on the next char

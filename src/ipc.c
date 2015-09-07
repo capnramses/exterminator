@@ -96,6 +96,8 @@ void parent_ipc (int pipes[][2]) {
 
 	Line_Meta* lms = NULL;
 	long int lc = 0;
+	char curr_source_file_name[128];
+	memset (curr_source_file_name, 0, 128);
 	{ // send "list" for default file
 		write_child (pipes[1][1], "set listsize unlimited\n");
 		read_child (pipes[0][0], op_buff);
@@ -106,7 +108,12 @@ void parent_ipc (int pipes[][2]) {
 		log_msg ("lines in file is %li\n", lc);
 		lms = get_line_meta_in_blob (blob, op_len + 1, lc);
 		assert (lms);
-		write_blob_lines (0, 48, blob, lc, lms, "???", 0);
+		
+		write_child (pipes[1][1], "info source\n");
+		read_child (pipes[0][0], op_buff);
+		parse_source_file_name (op_buff, curr_source_file_name);
+		
+		write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, 0);
 		log_msg ("wrote em\n");
 		redraw_line_nos (1, 49, lc);
 		redraw_bp_bar (0, 48, lc, lms);
@@ -120,8 +127,9 @@ void parent_ipc (int pipes[][2]) {
 
 		bool collecting = true;
 		bool gdb_entry = false;
+		int c = 0;
 		while (collecting) {
-			int c = getch ();
+			c = getch ();
 			
 			bool collected = false;
 			bool lchange = false;
@@ -183,7 +191,7 @@ void parent_ipc (int pipes[][2]) {
 							lchange = true;
 						}
 					}
-					write_blob_lines (0, 48, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
 					break;
 				}
 				case KEY_DOWN: {
@@ -201,19 +209,19 @@ void parent_ipc (int pipes[][2]) {
 							}
 						}
 					}
-					write_blob_lines (0, 48, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
 					break;
 				}
 				case KEY_NPAGE: {
 					start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
 					lchange = true;
-					write_blob_lines (0, 48, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
 					break;
 				}
 				case KEY_PPAGE: {
 					start_ln = MAX (start_ln - 50, 0);
 					lchange = true;
-					write_blob_lines (0, 48, blob, lc, lms, "???", y);
+					write_blob_lines (0, 48, blob, lc, lms, curr_source_file_name, y);
 					break;
 				}
 				case 32: {
@@ -246,56 +254,21 @@ void parent_ipc (int pipes[][2]) {
 		} // while collecting input
 		
 		write_child (pipes[1][1], ip_buff);
-		log_msg ("-->[%s]\n", ip_buff);
 		
 		op_len = read_child (pipes[0][0], op_buff);
-		if (op_len > 0) {
-			buffer[op_len] = 0;
-			log_msg ("%s", buffer);
-			write_gdb_op (buffer);
-			
-			// TODO parse this to find breakpoints etc, don't assume it worked
-			// this also means manual commands will set visual break
-			
-			// line by line
-			const char * curr_line = buffer;
-			while (curr_line) {
-				char* next_line = strchr (curr_line, '\n');
-				if (next_line) {
-					*next_line = '\0'; // temporary stopper on the \n
-				}
-				if (strstr (curr_line, "Breakpoint")) {
-					log_msg ("FOUND [%s]\n", curr_line);
-					int bpn = 0;
-					char addr_str[16];
-					char file_name[32]; // has comma at end to strip
-					long int line = -1;
-					//
-					int r = sscanf (curr_line, "~\"Breakpoint %i %s file %s line %li.\n\"\n",
-						&bpn, addr_str, file_name, &line);
-					// set a breakpoint
-					if (r == 4) {
-						log_msg ("bp %i at %s %s:%li\n", bpn, addr_str, file_name,
-							line);
-						// TODO NOTE: assuming same file here
-						assert (toggle_bp (lms, line - 1, lc));
-						redraw_bp_bar (0, 48, lc, lms);
-					// running to a breakpoint
-					} else {
-						log_msg ("r=%i\n", r);
-					}
-				} else {
-					log_msg ("curr line [%s]\n", curr_line);
-				}
-				// unstopper
-				if (next_line) {
-					*next_line = '\n';
-					curr_line = next_line + 1;
-				} else {
-					curr_line = NULL;
-				}
-			}
+		
+		if (32 == c) {
+			char fn[256];
+			memset (fn, 0, 256);
+			int line = 0;
+			parse_breakpoint (op_buff, fn, &line);
+			// TODO -- toggle to set/unset
+			toggle_bp (lms, line - 1, lc);
+			redraw_bp_bar (0, 48, lc, lms);
 		}
+		
+		// ... TODO
+		
 	} // while
 	
 } // func

@@ -9,3 +9,5 @@
 * fixed error in ptr mult in malloc (not in parenths)
 * better erm thingy thing forgot what i was writing
 * technically functional - can start debugging crongdor
+* basic colour change for whole-line comments
+* breakpoint set working again -- parsing function in parse.c
