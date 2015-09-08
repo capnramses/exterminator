@@ -2,7 +2,7 @@
 
 Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB).
 
-![screenshot]("shots/Screenshot - 09082015 - 01:16:39 AM.png")
+![screenshot](shots/exp.png)
 
 Because why can't I just have GDB with a better (Turbo-C style) UI and less typing?
 
