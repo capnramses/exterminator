@@ -1,6 +1,6 @@
 #exterminator
 
-Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB).
+Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB). Written in C99.
 
 ![screenshot](shots/exp.png)
 
@@ -12,7 +12,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * interactive visual output
 * loads immediately, no mess, no fuss
 * runs super-fast - instant stepping, quick key commands
-* absolutely purified of these terrible ideas: {OOP, design patterns, middleware, library dependencies, BOOST, virtual machines, web-browsers, Qt, interpreted languages, JavaScript}
+* no major dependencies or middleware
 
 ##platforms
 
