@@ -4,7 +4,7 @@ Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB).
 
 ![screenshot](shots/exp.png)
 
-Because modern IDEs are inexcusably slow, and why can't I just have GDB with a better (Turbo-C style) UI and less typing?
+Because modern IDEs are inexcusably slow, and why can't I just have GDB with a better (Turbo C style) UI and less typing?
 
 ##goals
 
