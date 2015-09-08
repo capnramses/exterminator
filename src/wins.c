@@ -59,6 +59,9 @@ void draw_defaults () {
 	write_left_side_panel ();
 	write_watch_panel (watch_list);
 	char lines[50][100];
+	for (int i = 0; i < 50; i++) {
+		memset (lines[i], 0, 100);
+	}
 	write_stack_panel (lines, 0);
 
 	move (CURS_Y, CURS_X);
