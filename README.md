@@ -30,13 +30,12 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 ##basic usage
 
 * maximise your terminal window and/or reduce font size to fit more on display
-* launch with the same arguments as you'd give gdb:
-    ./exterminator target_prog
+* launch with the same arguments as you'd give gdb: `./exterminator target_prog`
 * source file containing entry point is immediately displayed.
 * scroll through lines with cursor keys
 * set a break point with `b`. you will see break points displayed in the margin.
 * run debug session press `r`
 * step to the next line press `spacebar` or `n`
-* type more detailed commands by opening GDB terminal `g`
+* type more detailed commands by opening GDB terminal `g`. example: instead of `r` to run type `run argument`
 * press `ESC` to leave GDB terminal mode
 * press `ESC` to quit programme
