@@ -18,7 +18,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 * GNU/Linux is the target platform
 * It accidentally works on OS X because BSD
-* MS Windows is not a build target because Windows is a toy for children (it might work)
+* MS Windows is not a build target
 
 ##status
 
