@@ -17,7 +17,7 @@ Because why can't I just have GDB with a better (Turbo-C style) UI and less typi
 
 * GNU/Linux is the target platform
 * It accidentally works on OS X because BSD
-* MS Windows is not a build target - it might work, don't care - Windows is a toy for children.
+* MS Windows is not a build target because Windows is a toy for children (it might work)
 
 ##status
 
