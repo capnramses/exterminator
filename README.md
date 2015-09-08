@@ -20,12 +20,20 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * It accidentally works on OS X because BSD
 * MS Windows is not a build target
 
+##major to-dos
+
+* step-ins with displayed file change
+* left-hand bar with source files to switch to
+* stack trace in right-hand side
+* side-by-side asm (later)
+* memory inspection window (later)
+
 ##status
 
 * most important features working but not robust
 * starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, and watch list update
 * no file change/browse yet
-* temporarily disabled file scrolling
+* has some memory crash errors / malloc and string lengths need tidy
 
 ##building instructions
 
