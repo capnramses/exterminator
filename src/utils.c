@@ -282,6 +282,8 @@ bool sll_delete_node (SLL_Node** list_ptr, SLL_Node* ptr) {
 		p = p->next;
 	} // endwhile
 	
+	assert (ptr);
+	assert (ptr->data);
 	free (ptr->data);
 	ptr->data = NULL; // pointless, not used again
 	free (ptr);
@@ -323,6 +325,9 @@ bool sll_recursive_delete (SLL_Node** ptr) {
 	if ((*ptr)->next) {
 		sll_recursive_delete (&(*ptr)->next);
 	}
+	
+	assert (*ptr);
+	assert ((*ptr)->data);
 	free ((*ptr)->data);
 	(*ptr)->data = NULL; // pointless, not used again
 	free (*ptr);
@@ -332,19 +337,19 @@ bool sll_recursive_delete (SLL_Node** ptr) {
 
 bool add_to_watch (const char* var_name, const char* value_str,
 	SLL_Node** list_ptr) {
-	char a[15];
-	char b[15];
-	strncpy (a, var_name, 14);
-	strncpy (b, value_str, 14);
-	char tmp[32];
+	char a[512];
+	char b[512];
+	strncpy (a, var_name, 511);
+	strncpy (b, value_str, 511);
+	char tmp[2048];
 	SLL_Node* node_ptr = NULL;
-	sprintf (tmp, "%-15s %15s", a, b);
+	sprintf (tmp, "%s %s", a, b);
 	//log_msg ("a:[%s] b:[%s] tmp:[%s]\n", a, b, tmp);
 	if (*list_ptr) {
 		SLL_Node* ep = sll_find_end_node (*list_ptr);
-		node_ptr = sll_insert_after (ep, tmp, 32);
+		node_ptr = sll_insert_after (ep, tmp, strlen (tmp) + 1);
 	} else {
-		node_ptr = sll_add_to_front (list_ptr, tmp, 32);
+		node_ptr = sll_add_to_front (list_ptr, tmp, strlen (tmp) + 1);
 	}
 	assert (node_ptr);
 	return true;

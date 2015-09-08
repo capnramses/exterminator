@@ -20,22 +20,20 @@ MISSIONS
 4. file browsing/unload/load
    * keyboard
    * mouse
-5  visual stepping/focuse of code on spacebar or sthng easy
+5  visual stepping/focuse of code on spacebar or sthng easy - PARTIAL
 */
 
 /* TODO
--- interactive (W)atch, enter name of variable (or click on it):
-NOTE: gdb command is DISPLAY not WATCH (watch is a breakpoint)
-
-(gdb) 
-display ll
-&"display ll\n"
-~"1: ll = 0"
-~"\n"
-^done
-(gdb) 
+-- format gdb output to lines and x lines
+-- tail it and think about scroll
+-- support for scrolling long files
+-- support for multiple files
 
 -- (c)ontinue
+-- (s)tep
+-- nexti stepi
+-- assembly side-by-side
+-- memory window
 
 GDB Mode
 --------
@@ -47,13 +45,13 @@ GUI Overall
 -----------
 * left/right arrows or tab do focus shift
 * display files in lhs
+* arbitrary KEY "COMMAND STRING" bindings file?
 
 Debugging
 ---------
 * unset breakpoint with spacebar
 * change toggle() to set() and unset()
-* run again after run once -- needs extra reads i think
-* arbitrary KEY "COMMAND STRING" bindings file?
+* stack trace on rhs
 */
 
 /* IDEAS

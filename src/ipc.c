@@ -111,7 +111,7 @@ void parent_ipc (int pipes[][2]) {
 		
 		write_child (pipes[1][1], "info source\n");
 		read_child (pipes[0][0], op_buff);
-		parse_source_file_name (op_buff, curr_source_file_name);
+		assert (parse_source_file_name (op_buff, curr_source_file_name));
 		
 		write_blob_lines (0, 48, file_text_buff, lc, lms, curr_source_file_name,
 			0);
@@ -121,11 +121,12 @@ void parent_ipc (int pipes[][2]) {
 		mvprintw (CURS_Y, 0, "%100c", ' ');
 		attroff (COLOR_PAIR(2));
 		move (CURS_Y, CURS_X);
-		refresh ();
+		//refresh ();
 	}
 
 	long int y = 0, start_ln = 0;
 	bool gdb_entry = false;
+	bool watch_entry = false;
 	bool running = false;
 	bool just_started_running = false;
 	bool stepped = false;
@@ -145,18 +146,20 @@ void parent_ipc (int pipes[][2]) {
 			just_started_running = false;
 			
 			// quit on esc
-			if (!gdb_entry && (c == 27)) {
+			if (!gdb_entry && !watch_entry && (c == 27)) {
 				log_msg ("quit normally by user\n");
 				return;
 			}
 			
 			// switch to typing gdb commands after typing 'g'
-			if (!collected && !gdb_entry && ('g' == c)) {
+			if (!collected && !gdb_entry && !watch_entry && ('g' == c)) {
 				gdb_entry = true;
 				collected = false;
 				input_l = 0;
-				mvprintw (CURS_Y - 1, 0, "(gdb) mode - press ESC to leave.\n");
+				mvprintw (CURS_Y - 1, 0, "%100c", ' ');
+				mvprintw (CURS_Y - 1, 0, "(gdb) mode - press ESC to leave.");
 				attron (COLOR_PAIR(8));
+				move (CURS_Y, CURS_X);
 				echo ();
 				continue;
 			}
@@ -169,7 +172,10 @@ void parent_ipc (int pipes[][2]) {
 					input_l = 0; // reset buffer
 					noecho ();
 					attroff (COLOR_PAIR(8));
-					mvprintw (CURS_Y - 1, 0, "leaving gdb command entry\n");
+					mvprintw (CURS_Y - 1, 0, "%100c", ' ');
+					mvprintw (CURS_Y - 1, 0, "leaving gdb command entry");
+					mvprintw (CURS_Y, 0, "%100c", ' ');
+					move (CURS_Y, CURS_X);
 				// ignore invalid keys
 				} else if (c > 31 && c < 128) {
 					ip_buff[input_l] = c;
@@ -177,11 +183,9 @@ void parent_ipc (int pipes[][2]) {
 					collected = true;
 				// backspace
 				} else if (c == KEY_BACKSPACE) {
-					log_msg ("backspace\n");
 					if (input_l > 0) {
 						ip_buff[input_l - 1] = 0;
 						input_l--;
-						log_msg ("backspace ss\n");
 					}
 				// submit buffer on enter key
 				} else if (c == '\n') {
@@ -200,6 +204,88 @@ void parent_ipc (int pipes[][2]) {
 					// TODO perhaps if buffer emtpy don't send or gdb won't reply
 				} // if
 				continue;
+			}
+			
+			// switch to typing gdb commands after typing 'g'
+			if (!watch_entry && ('w' == c)) {
+				watch_entry = true;
+				input_l = 0;
+				input_l = 0;
+				mvprintw (CURS_Y - 1, 0, "%100c", ' ');
+				mvprintw (CURS_Y - 1, 0, "Watch: enter variable name or ESC to abort:");
+				echo ();
+				mvprintw (CURS_Y, 0, "%100c", ' ');
+				move (CURS_Y, CURS_X);
+				continue;
+			}
+			
+			if (watch_entry) {
+				// break watch entry on esc
+				if (c == 27) {
+					watch_entry = false;
+					input_l = 0; // reset buffer
+					noecho ();
+					mvprintw (CURS_Y - 1, 0, "%100c", ' ');
+					mvprintw (CURS_Y - 1, 0, "leaving watch command entry");
+					mvprintw (CURS_Y, 0, "%100c", ' ');
+					move (CURS_Y, CURS_X);
+				} else if (c > 31 && c < 128) {
+					ip_buff[input_l] = c;
+					input_l++;
+				} else if (c == KEY_BACKSPACE) {
+					if (input_l > 0) {
+						ip_buff[input_l - 1] = 0;
+						input_l--;
+					}
+				// submit buffer on enter key
+				} else if (c == '\n') {
+					mvprintw (CURS_Y - 1, 0, "%100c", ' ');
+					move (CURS_Y, CURS_X);
+					ip_buff[input_l] = '\0';
+					input_l++;
+					log_msg ("var is [%s] len %i\n", ip_buff, input_l);
+					//ip_buff[input_l] = '\0';
+					// clear the line
+					mvprintw (CURS_Y, 0, "%100c", ' ');
+					// perhaps if buffer emtpy don't send or gdb won't reply
+					if (input_l < 1) {
+						mvprintw (CURS_Y - 1, 0, "leaving watch command entry");
+						mvprintw (CURS_Y, 0, "%100c", ' ');
+						move (CURS_Y, CURS_X);
+					// add to watch list
+					} else {
+						char tmp[1024], valstr[256];
+						sprintf (tmp, "print %s\n", ip_buff);
+						write_child (pipes[1][1], tmp);
+						op_len = read_child (pipes[0][0], op_buff);
+						memset (valstr, 0, 256);
+						if (parse_watched (op_buff, valstr)) {
+							add_to_watch (ip_buff, valstr, &watch_list);
+						} else {
+							add_to_watch (ip_buff, "???", &watch_list);
+						}
+						//op_len = read_child (pipes[0][0], op_buff);
+						write_watch_panel (watch_list);
+					}
+					watch_entry = false;
+					noecho ();
+					input_l = 0;
+				} // if
+				continue;
+			}
+			
+			if (running) {
+				if (c == 32 || c == 'n') { // spacebar
+					sprintf (ip_buff, "next\n");
+					lchange = true;
+					collecting = false;
+					stepped = true;
+				} else if (c == 's') {
+					sprintf (ip_buff, "step\n");
+					lchange = true;
+					collecting = false;
+					stepped = true;
+				}
 			}
 			
 			// normal editor commands
@@ -269,35 +355,13 @@ void parent_ipc (int pipes[][2]) {
 					running = true;
 					break;
 				}
-				case 32: { // spacebar
-					sprintf (ip_buff, "next\n");
-					lchange = true;
-					collecting = false;
-					stepped = true;
-					break;
-				}
-				case 'n': {
-					sprintf (ip_buff, "next\n");
-					lchange = true;
-					collecting = false;
-					stepped = true;
-					break;
-				}
-				case 's': {
-					sprintf (ip_buff, "step\n");
-					lchange = true;
-					collecting = false;
-					stepped = true;
-					break;
-				}
 				default: {
-					
 				} // default case
 			} // switch
 			
 			if (lchange) {
 				move (CURS_Y, CURS_X);
-				refresh ();
+				//refresh ();
 			}
 		} // while collecting input
 		
@@ -317,7 +381,13 @@ void parent_ipc (int pipes[][2]) {
 		if (running) {
 			if (stepped || just_started_running) {
 				int line = 0;
-				parse_running_line (op_buff, &line);
+				// assume run finished if returned false
+				if (!parse_running_line (op_buff, &line)) {
+					just_started_running = false;
+					running = false;
+					stepped = false;
+					continue;
+				} 
 				log_msg ("nexted line = %i\n", line);
 				
 				// update display with new focus
@@ -326,16 +396,7 @@ void parent_ipc (int pipes[][2]) {
 					curr_source_file_name, line - 1);
 				redraw_line_nos (1, 49, lc);
 				redraw_bp_bar (0, 48, lc, lms);
-				//attron (COLOR_PAIR(2));
-				//mvprintw (CURS_Y, 0, "%100c", ' ');
-				//attroff (COLOR_PAIR(2));
-				
-				// check for changes to any on our own watch list
-				// "print varname"
-				
-				
 				move (CURS_Y, CURS_X);
-				refresh ();
 			}
 			
 			// update the variables on the watch list
@@ -355,17 +416,16 @@ void parent_ipc (int pipes[][2]) {
 			// NOTE: could check if actually changed first
 			write_watch_panel (watch_list);
 			move (CURS_Y, CURS_X);
-			refresh ();
-			
 			
 		} else if ('b' == c) {
 			char fn[256];
 			memset (fn, 0, 256);
 			int line = 0;
-			parse_breakpoint (op_buff, fn, &line);
-			// TODO -- toggle to set/unset
-			toggle_bp (lms, line - 1, lc);
-			redraw_bp_bar (0, 48, lc, lms);
+			if (parse_breakpoint (op_buff, fn, &line)) {
+				// TODO -- toggle to set/unset
+				toggle_bp (lms, line - 1, lc);
+				redraw_bp_bar (0, 48, lc, lms);
+			}
 		}
 		
 		

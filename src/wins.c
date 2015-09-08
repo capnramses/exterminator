@@ -54,9 +54,6 @@ void nice_exit () {
 }
 
 void draw_defaults () {
-	// set-up watch list
-	add_to_watch ("sz", "60", &watch_list);
-	add_to_watch ("f", "2", &watch_list);
 	// and stack list
 	SLL_Node* stack_list = NULL;
 	//add_to_stack ("hmm", &stack_list);
@@ -83,7 +80,7 @@ void write_blob_lines (int startl, int endl, char* blob,
 	
 	int x = 26, y = 2;
 	
-	attron (COLOR_PAIR(1));
+	attron (COLOR_PAIR (1));
 	
 	// make blue background
 	for (int i = 0; i < 49; i++) {
@@ -123,28 +120,29 @@ void write_blob_lines (int startl, int endl, char* blob,
 		}
 		
 		if (highlighted_line == i) {
-			attroff(COLOR_PAIR(1));
-			attron(COLOR_PAIR(5));
+			attroff(COLOR_PAIR (1));
+			attron(COLOR_PAIR (5));
 			mvprintw (y + n, x, "%-100s", tmp2);
-			attroff(COLOR_PAIR(5));
-			attron(COLOR_PAIR(1));
+			attroff(COLOR_PAIR (5));
+			attron(COLOR_PAIR (1));
 		} else if (is_comment) {
-			attroff(COLOR_PAIR(1));
-			attron(COLOR_PAIR(7));
+			attroff(COLOR_PAIR (1));
+			attron(COLOR_PAIR (7));
 			mvprintw (y + n, x, "%-100s", tmp2);
-			attroff(COLOR_PAIR(7));
-			attron(COLOR_PAIR(1));
+			attroff(COLOR_PAIR (7));
+			attron(COLOR_PAIR (1));
 		} else {
 			mvprintw (y + n, x, "%s", tmp2);
 		}
 		n++;
 	}
 	
-	//box (win, 0, 0);
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
-	mvprintw (y - 1, x, "%s line (%i/%li)\n", file_name, highlighted_line + 1, lc);
+	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1,
+		lc);
 	attroff(COLOR_PAIR(6));
+	
 	move (CURS_Y, CURS_X);
 }
 
@@ -163,6 +161,7 @@ void redraw_line_nos (int startl, int endl, long int lc) {
 	}
 	
 	attroff (COLOR_PAIR(1));
+	move (CURS_Y, CURS_X);
 }
 
 // the break-point vertical bar
@@ -188,6 +187,7 @@ void redraw_bp_bar (int startl, int endl, long int lc, Line_Meta* lms) {
 	
 	attroff (COLOR_PAIR(2));
 	move (CURS_Y, CURS_X);
+	move (CURS_Y, CURS_X);
 }
 
 void write_left_side_panel () {
@@ -199,6 +199,7 @@ void write_left_side_panel () {
 		mvprintw (i + y, x, "%19c", blank);
 	}
 	attroff (COLOR_PAIR(1));
+	move (CURS_Y, CURS_X);
 }
 
 void write_watch_panel (SLL_Node* list_ptr) {
@@ -219,18 +220,13 @@ void write_watch_panel (SLL_Node* list_ptr) {
 	SLL_Node* p = list_ptr;
 	int n = 0;
 	while (p) {
-		int l = strlen (p->data);
 		mvprintw (n + y, x + 1, "%s", (char*)p->data);
-		if (l < 32) {
-			for (int i = 0; i < 33 - l; i++) {
-				mvprintw (n + y, x + l + i, " ");
-			}
-		}
 		p = p->next;
 		n++;
 	}
 	
 	attroff (COLOR_PAIR(4));
+	move (CURS_Y, CURS_X);
 }
 
 void write_stack_panel (SLL_Node* list_ptr) {
@@ -260,6 +256,7 @@ void write_stack_panel (SLL_Node* list_ptr) {
 	}
 	
 	attroff (COLOR_PAIR(4));
+	move (CURS_Y, CURS_X);
 }
 
 void write_title_bars () {
@@ -272,9 +269,10 @@ void write_title_bars () {
 	attron (COLOR_PAIR(4));
 	mvprintw (0, 0, "//");
 	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses                        "
-		"(B)reakpoint (R)un (spacebar/N)ext (S)tep (W)atch (C)ontinue (G)DB "
+		"(B)reakpoint (R)un (spacebar/N)ext (W)atch (G)DB "
 		"%112c\n", ' ');
 	attroff (COLOR_PAIR(4));
+	move (CURS_Y, CURS_X);
 }
 
 void write_gdb_op (char* buffer) {
@@ -286,7 +284,7 @@ void write_gdb_op (char* buffer) {
 	// x doesn't line up after each line break -- would have to split buffer
 	mvprintw (CURS_Y + 1, 0, buffer);
 	attroff (COLOR_PAIR(2));
-	refresh ();
+	//refresh ();
 	move (CURS_Y, CURS_X);
 }
 

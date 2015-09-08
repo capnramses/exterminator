@@ -113,9 +113,8 @@ void extract_mi_line (const char* input, char output[]) {
 	}
 }
 
-void parse_source_file_name (const char* input, char* output) {
+bool parse_source_file_name (const char* input, char* output) {
 	//~"Current source file is genascii.c\n"
-	
 	long int len = strlen (input);
 	long int line_start = 0;
 	for (long int i = 0; i < len; i++) {
@@ -131,17 +130,17 @@ void parse_source_file_name (const char* input, char* output) {
 				sscanf (tmp, "~\"Current source file is %s", output);
 				long int llen = strlen (output);
 				output[llen - 1] = output[llen - 2] = output[llen - 3] = 0;
-				return;
+				return true;
 			}
 			
 			line_start = i + 1;
 		}
 	}
-	log_err ("ERROR: did not find source name in op\n");
-	exit (1);
+	log_err ("did not find source name in op\n");
+	return false;
 }
 
-void parse_breakpoint (const char* input, char* file_name, int* line) {
+bool parse_breakpoint (const char* input, char* file_name, int* line) {
 	// ~"Breakpoint 1 at 0x40077c: file genascii.c, line 15.\n"
 	// =breakpoint-created,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x000000000040077c",func="main",file="genascii.c",fullname="/home/anton/projects/exterminator/genascii.c",line="15",thread-groups=["i1"],times="0",original-location="/home/anton/projects/exterminator/genascii.c:15"}
 	long int len = strlen (input);
@@ -164,16 +163,16 @@ void parse_breakpoint (const char* input, char* file_name, int* line) {
 				file_name[llen - 1] = 0;
 				//log_err (tmp);
 				assert (r == 4);
-				return;
+				return true;
 			}
 			line_start = i + 1;
 		}
 	}
-	log_err ("ERROR: did not find source name in op\n");
-	exit (1);
+	log_err ("did not find source name in op\n");
+	return false;
 }
 
-void parse_running_line (const char* input, int* line) {
+bool parse_running_line (const char* input, int* line) {
 	// ~"9\t\tint ll = 0;\n"
 	long int len = strlen (input);
 	long int line_start = 0;
@@ -191,14 +190,14 @@ void parse_running_line (const char* input, int* line) {
 				if (p) {
 					int r = sscanf (p, "line=\"%i\"", line);
 					assert (r == 1);
-					return;
+					return true;
 				}
 			}
 			line_start = i + 1;
 		}
 	}
-	log_err ("ERROR: did not find running line in op\n");
-	exit (1);
+	log_err ("did not find running line in op\n");
+	return false;
 }
 
 bool parse_watched (const char* input, char* val_str) {
@@ -225,7 +224,9 @@ bool parse_watched (const char* input, char* val_str) {
 					val_str[m] = tmp[l];
 					m++;
 				}
+				// lose some end string bits
 				val_str[m - 1] = 0;
+				val_str[m - 2] = 0;
 				log_msg ("%i= val_str=%s\n", eq_i, val_str);
 				return true;
 			}
@@ -235,5 +236,4 @@ bool parse_watched (const char* input, char* val_str) {
 	// it's okay to not find a val
 	return false;
 }
-
 
