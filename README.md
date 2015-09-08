@@ -12,6 +12,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * interactive visual output
 * loads immediately, no mess, no fuss
 * runs super-fast - instant stepping, quick key commands
+* absolutely purified of these terrible ideas: {OOP, design patterns, middleware, library dependencies, BOOST, virtual machines, web-browsers, Qt, interpreted languages, JavaScript}
 
 ##platforms
 
