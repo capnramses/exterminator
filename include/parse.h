@@ -34,3 +34,8 @@ bool parse_breakpoint (const char* input, char* file_name, int* line);
 bool parse_running_line (const char* input, int* line);
 
 bool parse_watched (const char* input, char* val_str);
+
+long int count_lines_in_string (const char* input);
+
+bool split_gdb_mi_block (const char* input, char lines[][128], int* num_lines);
+

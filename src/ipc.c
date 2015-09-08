@@ -124,7 +124,7 @@ void parent_ipc (int pipes[][2]) {
 		//refresh ();
 	}
 
-	long int y = 0, start_ln = 0;
+	long int y = 0;
 	bool gdb_entry = false;
 	bool watch_entry = false;
 	bool running = false;
@@ -289,54 +289,30 @@ void parent_ipc (int pipes[][2]) {
 			}
 			
 			// normal editor commands
+			// TODO: anton -- this is a bit of a sprawling mess. consolidate later
+			// when better structure becomes clear
 			switch (c) {
 				case KEY_UP: {
 					// move line cursor
-					if (y > 0) {
-						y--;
-						lchange = true;
-					// scroll page
-					} else {
-						if (start_ln > 0) {
-							start_ln--;
-							lchange = true;
-						}
-					}
-					write_blob_lines (0, 48, file_text_buff, lc, lms,
-						curr_source_file_name, y);
+					y = MAX (0, y - 1);
+					lchange = true;
 					break;
 				}
 				case KEY_DOWN: {
 					// move line cursor
 					// not past end of doc even if room on pg
-					if (start_ln + y < lc - 1) {
-						if (y < 48) {
-							y++;
-							lchange = true;
-						// scroll page
-						} else {
-							if (start_ln < lc - 1) {
-								start_ln++;
-								lchange = true;
-							}
-						}
-					}
-					write_blob_lines (0, 48, file_text_buff, lc, lms,
-						curr_source_file_name, y);
+					y = MIN (lc - 1, y + 1);
+					lchange = true;
 					break;
 				}
 				case KEY_NPAGE: {
-					start_ln = MAX (MIN (start_ln + 50, lc - 49), 0);
+					y = MIN (lc - 1, y + 50);
 					lchange = true;
-					write_blob_lines (0, 48, file_text_buff, lc, lms,
-						curr_source_file_name, y);
 					break;
 				}
 				case KEY_PPAGE: {
-					start_ln = MAX (start_ln - 50, 0);
+					y = MAX (0, y - 50);
 					lchange = true;
-					write_blob_lines (0, 48, file_text_buff, lc, lms,
-						curr_source_file_name, y);
 					break;
 				}
 				case 'b': {
@@ -346,7 +322,7 @@ void parent_ipc (int pipes[][2]) {
 					break;
 				}
 				case 'r': {
-					sprintf (ip_buff, "run %li\n", y + 1);
+					sprintf (ip_buff, "run\n");
 					lchange = true;
 					collecting = false;
 					if (!running) {
@@ -355,13 +331,30 @@ void parent_ipc (int pipes[][2]) {
 					running = true;
 					break;
 				}
+				/* TODO -- crashes for some reason?? case 'c': {
+					sprintf (ip_buff, "continue\n");
+					lchange = true;
+					collecting = false;
+					if (!running) {
+						just_started_running = true;
+					}
+					stepped = true;
+					running = true;
+					break;
+				}*/
 				default: {
 				} // default case
 			} // switch
 			
 			if (lchange) {
+				long int min = MAX (0, y - 24);
+				long int max = MIN (lc, min + 48);
+				write_blob_lines (min, max, file_text_buff, lc, lms,
+					curr_source_file_name, y);
+				redraw_line_nos (min + 1, max + 1, lc);
+				redraw_bp_bar (min, max, lc, lms);
 				move (CURS_Y, CURS_X);
-				//refresh ();
+				move (CURS_Y, CURS_X);
 			}
 		} // while collecting input
 		
@@ -392,10 +385,12 @@ void parent_ipc (int pipes[][2]) {
 				
 				// update display with new focus
 				// TODO change these nums if gone off page
-				write_blob_lines (0, 48, file_text_buff, lc, lms,
+				long int min = MAX (0, line - 24);
+				long int max = MIN (lc, min + 48);
+				write_blob_lines (min, max, file_text_buff, lc, lms,
 					curr_source_file_name, line - 1);
-				redraw_line_nos (1, 49, lc);
-				redraw_bp_bar (0, 48, lc, lms);
+				redraw_line_nos (min + 1, max + 1, lc);
+				redraw_bp_bar (min, max, lc, lms);
 				move (CURS_Y, CURS_X);
 			}
 			
@@ -424,7 +419,9 @@ void parent_ipc (int pipes[][2]) {
 			if (parse_breakpoint (op_buff, fn, &line)) {
 				// TODO -- toggle to set/unset
 				toggle_bp (lms, line - 1, lc);
-				redraw_bp_bar (0, 48, lc, lms);
+				long int min = MAX (0, y - 24);
+				long int max = MIN (lc, min + 48);
+				redraw_bp_bar (min, max, lc, lms);
 			}
 		}
 		

@@ -24,12 +24,11 @@ MISSIONS
 */
 
 /* TODO
--- format gdb output to lines and x lines
--- tail it and think about scroll
--- support for scrolling long files
--- support for multiple files
-
+(1)- call bt every step and display
+(2)- file change when nexti or stepi
+(3)- file selection
 -- (c)ontinue
+-- (i)nterrupt
 -- (s)tep
 -- nexti stepi
 -- assembly side-by-side

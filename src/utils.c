@@ -9,7 +9,7 @@
 #include <time.h>
 #include <assert.h>
 #include <string.h>
-#define LOG_FILE "log.txt"
+#define LOG_FILE "exterminator.log"
 
 // log is appended to - this clears it and prints the date
 // returns false on error

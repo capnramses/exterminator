@@ -139,6 +139,7 @@ void write_blob_lines (int startl, int endl, char* blob,
 	
 	attroff (COLOR_PAIR(1));
 	attron(COLOR_PAIR(6));
+	mvprintw (y - 1, x, "%30c", ' ');
 	mvprintw (y - 1, x, "%s line (%i/%li)", file_name, highlighted_line + 1,
 		lc);
 	attroff(COLOR_PAIR(6));
@@ -205,12 +206,6 @@ void write_left_side_panel () {
 void write_watch_panel (SLL_Node* list_ptr) {
 	int x = 126, y = 2;
 	char blank = ' ';
-	
-	attron (COLOR_PAIR(2));
-	for (int i = 0; i < 49; i++) {
-		//mvprintw (i + y, x, "%c", blank);
-	}
-	attroff (COLOR_PAIR(2));
 	
 	attron (COLOR_PAIR(4));
 	for (int i = 0; i < 49; i++) {
@@ -279,12 +274,30 @@ void write_gdb_op (char* buffer) {
 	// clear area
 	attron (COLOR_PAIR(2));
 	for (int i = 0; i < 25; i++) {
-		mvprintw (i + CURS_Y + 1, 0, "%100c", ' ');
+		mvprintw (i + CURS_Y + 1, 0, "%127c", ' ');
 	}
+	
+	char lines[256][128];
+	int num_lines = 0;
+	if (split_gdb_mi_block (buffer, lines, &num_lines)) {
+		// TODO print the rest with (more) feature or sthng?
+		
+		// find last 13 lines
+		int j = 0;
+		int st = MAX (0, num_lines - 15);
+		//log_msg ("start line = %i\n", st);
+		for (long int i = st; i < num_lines - 2; i++) {
+			if (i == st && st > 0) {
+				mvprintw (j + CURS_Y + 1, 0, "...tail of longer gdb output:");
+			} else {
+				mvprintw (j + CURS_Y + 1, 0, lines[i]);
+			}
+			j++;
+		}
+	}
+	
 	// x doesn't line up after each line break -- would have to split buffer
-	mvprintw (CURS_Y + 1, 0, buffer);
 	attroff (COLOR_PAIR(2));
-	//refresh ();
 	move (CURS_Y, CURS_X);
 }
 

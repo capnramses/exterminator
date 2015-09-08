@@ -136,7 +136,7 @@ bool parse_source_file_name (const char* input, char* output) {
 			line_start = i + 1;
 		}
 	}
-	log_err ("did not find source name in op\n");
+	//log_err ("did not find source name in op\n");
 	return false;
 }
 
@@ -168,7 +168,7 @@ bool parse_breakpoint (const char* input, char* file_name, int* line) {
 			line_start = i + 1;
 		}
 	}
-	log_err ("did not find source name in op\n");
+	//log_err ("did not find source name in op\n");
 	return false;
 }
 
@@ -196,7 +196,7 @@ bool parse_running_line (const char* input, int* line) {
 			line_start = i + 1;
 		}
 	}
-	log_err ("did not find running line in op\n");
+	//log_err ("did not find running line in op\n");
 	return false;
 }
 
@@ -235,5 +235,42 @@ bool parse_watched (const char* input, char* val_str) {
 	}
 	// it's okay to not find a val
 	return false;
+}
+
+long int count_lines_in_string (const char* input) {
+	long int len = strlen (input);
+	if (len < 1) {
+		return 0;
+	}
+	long int count = 1;
+	for (long int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			count++;
+		}
+	}
+	return count;
+}
+
+bool split_gdb_mi_block (const char* input, char lines[][128],
+	int* num_lines) {
+	*num_lines = count_lines_in_string (input);
+	log_msg ("lines in gdb op is %i\n", *num_lines);
+	
+	
+	int curr_line = 0;
+	int len = strlen (input);
+	int l_start = 0;
+	for (int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			int ll = i - l_start;
+			strncpy (lines[curr_line++], &input[l_start], MIN (126, ll));
+			lines[curr_line - 1][ll - 1] = '\0';
+			l_start = i + 1;
+		}
+	}
+	int ll = len - l_start;
+	strncpy (lines[curr_line++], &input[l_start], ll);
+	
+	return true;
 }
 

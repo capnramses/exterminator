@@ -3,6 +3,9 @@
 * removed all unnecessary refresh() calls
 * watch command and console to add variable to Behold! list
 * can only step/next when running - prevents crash i/o pileup
+* tided gdb output into lines and fixed # of lines
+* cleared line nums/titles between draws
+* re-impl text/linenumbar/breakbar scrolling, pgup/dn and focus step change
 
 7 sept 2015 - anton
 * added terminal size detection to start of main
