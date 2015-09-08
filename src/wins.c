@@ -11,6 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+SLL_Node* watch_list = NULL;
+
 void start_ncurses_defaults () {
 	// return to normal terminal whenever we exit -- sanity!
 	atexit (nice_exit);
@@ -53,9 +55,8 @@ void nice_exit () {
 
 void draw_defaults () {
 	// set-up watch list
-	SLL_Node* watch_list = NULL;
-	add_to_watch ("input_y", "60", &watch_list);
-	add_to_watch ("input_x", "2", &watch_list);
+	add_to_watch ("sz", "60", &watch_list);
+	add_to_watch ("f", "2", &watch_list);
 	// and stack list
 	SLL_Node* stack_list = NULL;
 	//add_to_stack ("hmm", &stack_list);
@@ -206,7 +207,7 @@ void write_watch_panel (SLL_Node* list_ptr) {
 	
 	attron (COLOR_PAIR(2));
 	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x, "%c", blank);
+		//mvprintw (i + y, x, "%c", blank);
 	}
 	attroff (COLOR_PAIR(2));
 	
@@ -218,7 +219,13 @@ void write_watch_panel (SLL_Node* list_ptr) {
 	SLL_Node* p = list_ptr;
 	int n = 0;
 	while (p) {
-		mvprintw (n + y, x + 1, "%-32s", (char*)p->data);
+		int l = strlen (p->data);
+		mvprintw (n + y, x + 1, "%s", (char*)p->data);
+		if (l < 32) {
+			for (int i = 0; i < 33 - l; i++) {
+				mvprintw (n + y, x + l + i, " ");
+			}
+		}
 		p = p->next;
 		n++;
 	}
@@ -265,7 +272,8 @@ void write_title_bars () {
 	attron (COLOR_PAIR(4));
 	mvprintw (0, 0, "//");
 	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses                        "
-		"(B)reakpoint (spacebar/S)tep (N)ext (G)DB %112c\n", ' ');
+		"(B)reakpoint (R)un (spacebar/N)ext (S)tep (W)atch (C)ontinue (G)DB "
+		"%112c\n", ' ');
 	attroff (COLOR_PAIR(4));
 }
 

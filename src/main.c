@@ -24,6 +24,19 @@ MISSIONS
 */
 
 /* TODO
+-- interactive (W)atch, enter name of variable (or click on it):
+NOTE: gdb command is DISPLAY not WATCH (watch is a breakpoint)
+
+(gdb) 
+display ll
+&"display ll\n"
+~"1: ll = 0"
+~"\n"
+^done
+(gdb) 
+
+-- (c)ontinue
+
 GDB Mode
 --------
 * format strings before printing
@@ -37,10 +50,10 @@ GUI Overall
 
 Debugging
 ---------
-* arbitrary KEY "COMMAND STRING" bindings file?
 * unset breakpoint with spacebar
 * change toggle() to set() and unset()
-* step highlights current line (perhaps with another bar colour?)
+* run again after run once -- needs extra reads i think
+* arbitrary KEY "COMMAND STRING" bindings file?
 */
 
 /* IDEAS

@@ -14,3 +14,5 @@
 * command bar (g)db (s)tep (or space) (n)ext (r)un (or f5)
 * properly clear bkgrnd
 * backspace removes last char from buffer
+* step highlights current line (perhaps with another bar colour?)
+* working watch list -- but no interface to add stuff to it yet

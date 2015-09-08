@@ -162,7 +162,7 @@ void parse_breakpoint (const char* input, char* file_name, int* line) {
 					&bnum, addr_str, file_name, line);
 				int llen = strlen (file_name);
 				file_name[llen - 1] = 0;
-				log_err (tmp);
+				//log_err (tmp);
 				assert (r == 4);
 				return;
 			}
@@ -172,4 +172,68 @@ void parse_breakpoint (const char* input, char* file_name, int* line) {
 	log_err ("ERROR: did not find source name in op\n");
 	exit (1);
 }
+
+void parse_running_line (const char* input, int* line) {
+	// ~"9\t\tint ll = 0;\n"
+	long int len = strlen (input);
+	long int line_start = 0;
+	for (long int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			char tmp[1024];
+			int k = 0;
+			for (long int j = line_start; j <= i; j++) {
+				tmp[k] = input[j];
+				k++;
+			}
+			tmp[k] = 0;
+			if (tmp[0] == '*') {
+				char* p = strstr (tmp, "line=");
+				if (p) {
+					int r = sscanf (p, "line=\"%i\"", line);
+					assert (r == 1);
+					return;
+				}
+			}
+			line_start = i + 1;
+		}
+	}
+	log_err ("ERROR: did not find running line in op\n");
+	exit (1);
+}
+
+bool parse_watched (const char* input, char* val_str) {
+	// ~"$1 = 0"
+	long int len = strlen (input);
+	long int line_start = 0;
+	for (long int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			char tmp[128];
+			int k = 0;
+			int eq_i = -1;
+			for (long int j = line_start; j <= i; j++) {
+				tmp[k] = input[j];
+				if (tmp[k] == '=') {
+					eq_i = k;
+				}
+				k++;
+			}
+			tmp[k] = 0;
+			if (strstr (tmp, "~\"$")) {
+				int llen = strlen (tmp);
+				int m = 0;
+				for (int l = eq_i + 2; l < llen; l++) {
+					val_str[m] = tmp[l];
+					m++;
+				}
+				val_str[m - 1] = 0;
+				log_msg ("%i= val_str=%s\n", eq_i, val_str);
+				return true;
+			}
+			line_start = i + 1;
+		}
+	}
+	// it's okay to not find a val
+	return false;
+}
+
 

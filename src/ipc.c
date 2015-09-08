@@ -126,6 +126,9 @@ void parent_ipc (int pipes[][2]) {
 
 	long int y = 0, start_ln = 0;
 	bool gdb_entry = false;
+	bool running = false;
+	bool just_started_running = false;
+	bool stepped = false;
 	while (1) {
 		bool collecting = true;
 		int c = 0;
@@ -138,6 +141,8 @@ void parent_ipc (int pipes[][2]) {
 			
 			bool collected = false;
 			bool lchange = false;
+			stepped = false;
+			just_started_running = false;
 			
 			// quit on esc
 			if (!gdb_entry && (c == 27)) {
@@ -254,22 +259,35 @@ void parent_ipc (int pipes[][2]) {
 					collecting = false;
 					break;
 				}
-				case 32: { // spacebar
-					sprintf (ip_buff, "step\n");
+				case 'r': {
+					sprintf (ip_buff, "run %li\n", y + 1);
 					lchange = true;
 					collecting = false;
+					if (!running) {
+						just_started_running = true;
+					}
+					running = true;
 					break;
 				}
-				case 's': {
-					sprintf (ip_buff, "step\n");
+				case 32: { // spacebar
+					sprintf (ip_buff, "next\n");
 					lchange = true;
 					collecting = false;
+					stepped = true;
 					break;
 				}
 				case 'n': {
 					sprintf (ip_buff, "next\n");
 					lchange = true;
 					collecting = false;
+					stepped = true;
+					break;
+				}
+				case 's': {
+					sprintf (ip_buff, "step\n");
+					lchange = true;
+					collecting = false;
+					stepped = true;
 					break;
 				}
 				default: {
@@ -286,8 +304,61 @@ void parent_ipc (int pipes[][2]) {
 		write_child (pipes[1][1], ip_buff);
 		
 		op_len = read_child (pipes[0][0], op_buff);
+		// TODO format, line-split, scroll
+		write_gdb_op (op_buff);
 		
-		if ('b' == c) {
+		// extra read to (gdb) here
+		if (just_started_running || stepped) {
+			op_len = read_child (pipes[0][0], op_buff);
+			write_gdb_op (op_buff);
+			//log_msg ("did the 2nd read...\n");
+		}
+		
+		if (running) {
+			if (stepped || just_started_running) {
+				int line = 0;
+				parse_running_line (op_buff, &line);
+				log_msg ("nexted line = %i\n", line);
+				
+				// update display with new focus
+				// TODO change these nums if gone off page
+				write_blob_lines (0, 48, file_text_buff, lc, lms,
+					curr_source_file_name, line - 1);
+				redraw_line_nos (1, 49, lc);
+				redraw_bp_bar (0, 48, lc, lms);
+				//attron (COLOR_PAIR(2));
+				//mvprintw (CURS_Y, 0, "%100c", ' ');
+				//attroff (COLOR_PAIR(2));
+				
+				// check for changes to any on our own watch list
+				// "print varname"
+				
+				
+				move (CURS_Y, CURS_X);
+				refresh ();
+			}
+			
+			// update the variables on the watch list
+			SLL_Node* n = watch_list;
+			while (n) {
+				char varname[256], valstr[256];
+				sscanf (n->data, "%s ", varname);
+				sprintf (ip_buff, "print %s\n", varname);
+				write_child (pipes[1][1], ip_buff);
+				op_len = read_child (pipes[0][0], op_buff);
+				memset (valstr, 0, 256);
+				if (parse_watched (op_buff, valstr)) {
+					sprintf (n->data, "%s %s", varname, valstr);
+				}
+				n = n->next;
+			}
+			// NOTE: could check if actually changed first
+			write_watch_panel (watch_list);
+			move (CURS_Y, CURS_X);
+			refresh ();
+			
+			
+		} else if ('b' == c) {
 			char fn[256];
 			memset (fn, 0, 256);
 			int line = 0;
@@ -295,10 +366,8 @@ void parent_ipc (int pipes[][2]) {
 			// TODO -- toggle to set/unset
 			toggle_bp (lms, line - 1, lc);
 			redraw_bp_bar (0, 48, lc, lms);
-		} else {
-			// TODO format, line-split, scroll
-			write_gdb_op (op_buff);
 		}
+		
 		
 		// ... TODO
 		

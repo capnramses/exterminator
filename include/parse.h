@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 #define MAX_OP_STR 8192
 
 // types of gdb m/i output
@@ -27,3 +29,8 @@ void extract_mi_line (const char* input, char output[]);
 void parse_source_file_name (const char* input, char* output);
 
 void parse_breakpoint (const char* input, char* file_name, int* line);
+
+// line that debugger is focussed on
+void parse_running_line (const char* input, int* line);
+
+bool parse_watched (const char* input, char* val_str);
