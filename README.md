@@ -22,6 +22,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 ##major to-dos
 
+* get argv for prog from main cmd line args
 * goto line button
 * step-ins with displayed file change, and stack update
 * left-hand bar with source files to switch to
