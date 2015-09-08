@@ -27,6 +27,10 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * no file change/browse yet
 * temporarily disabled file scrolling
 
+##building instructions
+
+`make`
+
 ##basic usage
 
 * maximise your terminal window and/or reduce font size to fit more on display
