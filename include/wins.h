@@ -31,7 +31,7 @@ void write_left_side_panel ();
 
 void write_watch_panel (SLL_Node* list_ptr);
 
-void write_stack_panel (SLL_Node* list_ptr);
+void write_stack_panel (char lines[][100], int nlines);
 
 void write_title_bars ();
 

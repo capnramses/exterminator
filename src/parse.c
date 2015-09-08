@@ -256,6 +256,28 @@ bool split_gdb_mi_block (const char* input, char lines[][128],
 	*num_lines = count_lines_in_string (input);
 	log_msg ("lines in gdb op is %i\n", *num_lines);
 	
+	int curr_line = 0;
+	int len = strlen (input);
+	int l_start = 0;
+	for (int i = 0; i < len; i++) {
+		if (input[i] == '\n') {
+			int ll = i - l_start;
+			ll = MIN (126, ll);
+			strncpy (lines[curr_line++], &input[l_start], ll);
+			lines[curr_line - 1][ll - 1] = '\0';
+			l_start = i + 1;
+		}
+	}
+	int ll = len - l_start;
+	strncpy (lines[curr_line++], &input[l_start], ll);
+	
+	return true;
+}
+
+bool split_st_mi_block (const char* input, char lines[][100],
+	int* num_lines) {
+	*num_lines = count_lines_in_string (input);
+	log_msg ("lines in btrace op is %i\n", *num_lines);
 	
 	int curr_line = 0;
 	int len = strlen (input);
@@ -263,7 +285,8 @@ bool split_gdb_mi_block (const char* input, char lines[][128],
 	for (int i = 0; i < len; i++) {
 		if (input[i] == '\n') {
 			int ll = i - l_start;
-			strncpy (lines[curr_line++], &input[l_start], MIN (126, ll));
+			ll = MIN (98, ll);
+			strncpy (lines[curr_line++], &input[l_start], ll);
 			lines[curr_line - 1][ll - 1] = '\0';
 			l_start = i + 1;
 		}

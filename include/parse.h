@@ -39,3 +39,5 @@ long int count_lines_in_string (const char* input);
 
 bool split_gdb_mi_block (const char* input, char lines[][128], int* num_lines);
 
+bool split_st_mi_block (const char* input, char lines[][100], int* num_lines);
+

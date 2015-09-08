@@ -84,6 +84,7 @@ void child_ipc (int pipes[][2], char** argv) {
 void parent_ipc (int pipes[][2]) {
 	char file_text_buff[262144];
 	char ip_buff[MAX_OP_STR], op_buff[MAX_OP_STR];
+	char bt_lines[49][100];
 	int input_l = 0, op_len = 0;
 	file_text_buff[0] = ip_buff[0] = op_buff[0] = '\0';
 		
@@ -391,7 +392,13 @@ void parent_ipc (int pipes[][2]) {
 					curr_source_file_name, line - 1);
 				redraw_line_nos (min + 1, max + 1, lc);
 				redraw_bp_bar (min, max, lc, lms);
-				move (CURS_Y, CURS_X);
+
+				// get stack trace
+				write_child (pipes[1][1], "bt\n");
+				op_len = read_child (pipes[0][0], op_buff);
+				int nbtl = 0;
+				split_st_mi_block (op_buff, bt_lines, &nbtl);
+				write_stack_panel (bt_lines, nbtl);
 			}
 			
 			// update the variables on the watch list

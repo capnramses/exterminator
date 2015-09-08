@@ -22,16 +22,16 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 ##major to-dos
 
-* step-ins with displayed file change
+* goto line button
+* step-ins with displayed file change, and stack update
 * left-hand bar with source files to switch to
-* stack trace in right-hand side
 * side-by-side asm (later)
 * memory inspection window (later)
 
 ##status
 
 * most important features working but not robust
-* starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, and watch list update
+* starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, watch list, stack trace
 * no file change/browse yet
 * has some memory crash errors / malloc and string lengths need tidy
 

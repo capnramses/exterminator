@@ -6,6 +6,7 @@
 * tided gdb output into lines and fixed # of lines
 * cleared line nums/titles between draws
 * re-impl text/linenumbar/breakbar scrolling, pgup/dn and focus step change
+* stack trace displayed
 
 7 sept 2015 - anton
 * added terminal size detection to start of main

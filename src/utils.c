@@ -355,11 +355,3 @@ bool add_to_watch (const char* var_name, const char* value_str,
 	return true;
 }
 
-bool add_to_stack (const char* str, SLL_Node** list_ptr) {
-	char tmp[64];
-	strncpy (tmp, str, 64);
-	SLL_Node* node_ptr = sll_add_to_front (list_ptr, tmp, 64);
-	assert (node_ptr);
-	return true;
-}
-

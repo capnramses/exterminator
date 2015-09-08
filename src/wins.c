@@ -54,17 +54,12 @@ void nice_exit () {
 }
 
 void draw_defaults () {
-	// and stack list
-	SLL_Node* stack_list = NULL;
-	//add_to_stack ("hmm", &stack_list);
-	add_to_stack ("#0  main (argc=1, argv=0x7fffffffde98) at src/main.c:55",
-		&stack_list);
-	
 	// title bar
 	write_title_bars ();
 	write_left_side_panel ();
 	write_watch_panel (watch_list);
-	write_stack_panel (stack_list);
+	char lines[50][100];
+	write_stack_panel (lines, 0);
 
 	move (CURS_Y, CURS_X);
 	// this need to be here before windows or it wont work
@@ -224,30 +219,23 @@ void write_watch_panel (SLL_Node* list_ptr) {
 	move (CURS_Y, CURS_X);
 }
 
-void write_stack_panel (SLL_Node* list_ptr) {
+void write_stack_panel (char lines[][100], int nlines) {
 	int x = 159, y = 2;
-	char blank = ' ';
 	
 	attron (COLOR_PAIR(2));
 	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x, "%c", blank);
+		mvprintw (i + y, x, "%c", ' ');
 	}
 	attroff (COLOR_PAIR(2));
 	
 	attron (COLOR_PAIR(4));
 	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x + 1, "%64", blank);
+		mvprintw (i + y, x + 1, "%100c", ' ');
 	}
 	
-	SLL_Node* p = list_ptr;
-	int n = 0;
-	while (p) {
-		mvprintw (n + y, x + 1, "%-64s", (char*)p->data);
-		p = p->next;
-		n++;
-	}
-	for (int i = n; i < 49; i++) {
-		mvprintw (i + y, x + 1, "%64c", blank);
+	int len = MAX (nlines, 49);
+	for (int i = 0; i < len; i++) {
+		mvprintw (i + y, x + 1, "%s", lines[i]);
 	}
 	
 	attroff (COLOR_PAIR(4));
@@ -290,6 +278,8 @@ void write_gdb_op (char* buffer) {
 			if (i == st && st > 0) {
 				mvprintw (j + CURS_Y + 1, 0, "...tail of longer gdb output:");
 			} else {
+				// TODO: fix this - crashes here
+				log_msg ("lines[%i] = [%s]\n", i, lines[i]);
 				mvprintw (j + CURS_Y + 1, 0, lines[i]);
 			}
 			j++;
