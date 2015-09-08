@@ -36,6 +36,6 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * set a break point with `b`. you will see break points displayed in the margin.
 * run debug session press `r`
 * step to the next line press `spacebar` or `n`
-* type more detailed commands by opening GDB terminal `g`. example: instead of `r` to run type `run argument`
+* type more detailed commands by opening GDB terminal `g`. example: instead of `r` to run type GDB's `run [arguments]`
 * press `ESC` to leave GDB terminal mode
 * press `ESC` to quit programme
