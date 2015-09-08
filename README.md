@@ -18,3 +18,10 @@ Because why can't I just have GDB with a better (Turbo-C style) UI and less typi
 * GNU/Linux is the target platform
 * It accidentally works on OS X because BSD
 * MS Windows is not a build target - it might work, don't care - Windows is a toy for children.
+
+##status
+
+* most important features working but not robust
+* starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, and watch list update
+* no file change/browse yet
+* temporarily disabled file scrolling
