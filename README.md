@@ -12,7 +12,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * interactive visual output
 * loads immediately, no mess, no fuss
 * runs super-fast - instant stepping, quick key commands
-* no major dependencies or middleware
+* no dependencies or middleware beyond GDB and ncurses
 
 ##platforms
 
