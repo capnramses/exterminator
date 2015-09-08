@@ -14,7 +14,9 @@
 #include <string.h>
 #include <assert.h>
 
-bool start_ipc (char** argv) {
+#define BIN "/usr/bin/gdb"
+
+bool start_ipc (int argc, char** argv) {
 	log_msg ("starting ipc\n");
 
 	// pipes are unidirectional so we need two, each with 2 ends
@@ -41,28 +43,16 @@ bool start_ipc (char** argv) {
 	
 	// child
 	if (0 == pid) {
-		log_msg ("starting child with:[");
-		int n = 0;
-		char* p = argv[n];
-		while (p) {
-			if (n > 0) {
-				log_msg (" ");
-			}
-			log_msg ("%s", p);
-			n++;
-			p = argv[n];
-		}
-		log_msg ("]\n");
-		child_ipc (pipes, argv);
+		child_ipc (pipes, argc, argv);
 	// parent
 	} else {
-		parent_ipc (pipes);
+		parent_ipc (pipes, argc, argv);
 	}
 	
 	return true;
 }
 
-void child_ipc (int pipes[][2], char** argv) {
+void child_ipc (int pipes[][2], int argc, char** argv) {
 	// connect calculator's in/out streams to our pipes
 	// redirect child's read end to stdin
 	// child's read is the 'read' end of the parent's write pipe
@@ -76,12 +66,18 @@ void child_ipc (int pipes[][2], char** argv) {
 	close (pipes[1][0]);
 	close (pipes[1][1]);
 
+	char target[1024];
+	memset (target, 0, 1024);
+	if (argc > 1) {
+		strcpy (target, argv[1]);
+	}
 	// launch the sucker
 	// argv here should not be our prog's whole argv because that will launch us!
-	execv (argv[0], argv);
+	char* args[] = {BIN, target, "--interp=mi", NULL};
+	execv (args[0], args);
 }
 
-void parent_ipc (int pipes[][2]) {
+void parent_ipc (int pipes[][2], int argc, char** argv) {
 	char file_text_buff[262144];
 	char ip_buff[MAX_OP_STR], op_buff[MAX_OP_STR];
 	char bt_lines[49][100];
@@ -112,6 +108,7 @@ void parent_ipc (int pipes[][2]) {
 		
 		write_child (pipes[1][1], "info source\n");
 		read_child (pipes[0][0], op_buff);
+		log_msg ("parsing src file [%s]\n", curr_source_file_name);
 		assert (parse_source_file_name (op_buff, curr_source_file_name));
 		
 		write_blob_lines (0, 48, file_text_buff, lc, lms, curr_source_file_name,
@@ -287,6 +284,22 @@ void parent_ipc (int pipes[][2]) {
 					collecting = false;
 					stepped = true;
 				}
+			} else {
+				if (c == 'r') {
+					sprintf (ip_buff, "run");
+					for (int i = 2; i < argc; i++) {
+						strcat (ip_buff, " ");
+						strcat (ip_buff, argv[i]);
+					}
+					strcat (ip_buff, "\n");
+					log_msg ("running with [%s]\n", ip_buff);
+					lchange = true;
+					collecting = false;
+					if (!running) {
+						just_started_running = true;
+					}
+					running = true;
+				}
 			}
 			
 			// normal editor commands
@@ -320,16 +333,6 @@ void parent_ipc (int pipes[][2]) {
 					sprintf (ip_buff, "break %li\n", y + 1);
 					lchange = true;
 					collecting = false;
-					break;
-				}
-				case 'r': {
-					sprintf (ip_buff, "run\n");
-					lchange = true;
-					collecting = false;
-					if (!running) {
-						just_started_running = true;
-					}
-					running = true;
 					break;
 				}
 				/* TODO -- crashes for some reason?? case 'c': {

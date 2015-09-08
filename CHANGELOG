@@ -1,3 +1,8 @@
+9 sept 2015 - anton
+* run command does nothing if already running (was segfaulting)
+* command line is now:
+./exterminator target targetargs*
+
 8 sept 2015 - anton
 * better title/menu bars display -- remove all '\n's from end of printws!!!
 * removed all unnecessary refresh() calls

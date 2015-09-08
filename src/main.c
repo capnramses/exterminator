@@ -74,8 +74,6 @@ Debugging
 #include <unistd.h>
 #include <sys/ioctl.h>
 
-#define BIN "/usr/bin/gdb"
-
 int main (int argc, char** argv) {
 	if (!restart_log ()) {
 		return 1;
@@ -99,34 +97,9 @@ int main (int argc, char** argv) {
 	start_ncurses_defaults ();
 	draw_defaults ();
 	
-	char** child_argv = NULL;
-	child_argv = (char**)malloc (sizeof (char*) * (argc + 2));
-	size_t len = strlen (BIN);
-	child_argv[0] = (char*)malloc (len + 1);
-	strcpy (child_argv[0], BIN);
-	for (int i = 1; i < argc; i++) {
-		len = strlen (argv[i]);
-		child_argv[i] = (char*)malloc (len + 1);
-		strcpy (child_argv[i], argv[i]);
-	}
-	len = strlen ("--interp=mi");
-	child_argv[argc] = (char*)malloc (len + 1);
-	strcpy (child_argv[argc], "--interp=mi");
-	// must have a null ptr at end of list or explodes
-	child_argv[argc + 1] = NULL;
-	
-	if (!start_ipc (child_argv)) {
+	if (!start_ipc (argc, argv)) {
 		return 1;
 	}
-	
-	for (int i = 0; i < argc + 1; i++) {
-		assert (child_argv[i]);
-		//free (child_argv[i]);
-		child_argv[i] = NULL;
-	}
-	assert (child_argv);
-	//free (child_argv);
-	child_argv = NULL;
 
 	// return to normal terminal
 	endwin ();

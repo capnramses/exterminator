@@ -8,11 +8,11 @@
 
 #include <stdbool.h>
 
-bool start_ipc (char** argv);
+bool start_ipc (int argc, char** argv);
 
-void child_ipc (int pipes[][2], char** argv);
+void child_ipc (int pipes[][2], int argc, char** argv);
 
-void parent_ipc (int pipes[][2]);
+void parent_ipc (int pipes[][2], int argc, char** argv);
 
 void write_child (int pipe, const char* input);
 
