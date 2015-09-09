@@ -172,7 +172,7 @@ bool parse_breakpoint (const char* input, char* file_name, int* line) {
 	return false;
 }
 
-bool parse_running_line (const char* input, int* line) {
+bool parse_running_line (const char* input, int* line, char* file_name) {
 	// ~"9\t\tint ll = 0;\n"
 	long int len = strlen (input);
 	long int line_start = 0;
@@ -186,10 +186,29 @@ bool parse_running_line (const char* input, int* line) {
 			}
 			tmp[k] = 0;
 			if (tmp[0] == '*') {
+				bool found_goods = false;
 				char* p = strstr (tmp, "line=");
 				if (p) {
 					int r = sscanf (p, "line=\"%i\"", line);
 					assert (r == 1);
+					found_goods = true;
+				}
+				p = strstr (tmp, "file=");
+				if (p) {
+					int r = sscanf (p, "file=\"%s", file_name);
+					assert (r == 1);
+					// chop off everthing after .c (string keeps going)
+					int l = strlen (file_name);
+					for (int j = 0; j < l; j++) {
+						if (file_name[j] == '\"') {
+							file_name[j] = 0;
+							break;
+						}
+					}
+					found_goods = true;
+				}
+				if (found_goods) {
+					log_msg ("found running file[%s]:[%i]\n", file_name, *line);
 					return true;
 				}
 			}

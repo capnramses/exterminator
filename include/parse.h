@@ -31,7 +31,7 @@ bool parse_source_file_name (const char* input, char* output);
 bool parse_breakpoint (const char* input, char* file_name, int* line);
 
 // line that debugger is focussed on
-bool parse_running_line (const char* input, int* line);
+bool parse_running_line (const char* input, int* line, char* file_name);
 
 bool parse_watched (const char* input, char* val_str);
 

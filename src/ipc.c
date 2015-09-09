@@ -98,7 +98,7 @@ void parent_ipc (int pipes[][2], int argc, char** argv) {
 	{ // send "list" for default file
 		write_child (pipes[1][1], "set listsize unlimited\n");
 		read_child (pipes[0][0], op_buff);
-		write_child (pipes[1][1], "list\n");
+		write_child (pipes[1][1], "list 1\n"); // 1 means start at top
 		op_len = read_child (pipes[0][0], file_text_buff);
 		
 		lc = count_lines_in_blob (file_text_buff, op_len + 1);
@@ -378,13 +378,41 @@ void parent_ipc (int pipes[][2], int argc, char** argv) {
 		if (running) {
 			if (stepped || just_started_running) {
 				int line = 0;
+				char found_file_name[1024];
+				found_file_name[0] = 0;
 				// assume run finished if returned false
-				if (!parse_running_line (op_buff, &line)) {
+				if (!parse_running_line (op_buff, &line, found_file_name)) {
 					just_started_running = false;
 					running = false;
 					stepped = false;
 					continue;
 				}
+				
+				// check if focussed file has changed
+				if (strcmp (curr_source_file_name, found_file_name) != 0) {
+					log_msg ("switching file...\n");
+					strcpy (curr_source_file_name, found_file_name);
+					
+					// TODO put this repeated block in a function
+					{
+						write_child (pipes[1][1], "set listsize unlimited\n");
+						read_child (pipes[0][0], op_buff);
+						write_child (pipes[1][1], "list 1\n"); // 1 means start at top
+						op_len = read_child (pipes[0][0], file_text_buff);
+	
+						lc = count_lines_in_blob (file_text_buff, op_len + 1);
+						log_msg ("lines in file is %li\n", lc);
+						
+						if (lms) {
+							free (lms);
+							lms = NULL;
+						}
+						
+						lms = get_line_meta_in_blob (file_text_buff, op_len + 1, lc);
+						assert (lms);
+					}
+				}
+				
 				// update cursor location
 				y = line - 1;
 				log_msg ("nexted line = %i\n", line);

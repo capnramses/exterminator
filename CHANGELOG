@@ -5,6 +5,7 @@
 * tided stack trace o/p
 * cursor location is updated to step line location during running session
 * title bar tidy up
+* other files are displayed when stepped into
 
 8 sept 2015 - anton
 * better title/menu bars display -- remove all '\n's from end of printws!!!

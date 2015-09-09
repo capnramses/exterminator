@@ -149,8 +149,12 @@ void write_blob_lines (int startl, int endl, char* blob,
 void redraw_line_nos (int startl, int endl, long int lc) {
 	int x = 20, y = 2, n = 0;
 	
+	// black out
+	for (int i = 2; i < 52; i++) {
+		mvprintw (y + i, x, "%5c", ' ');
+	}
+	
 	attron (COLOR_PAIR(1));
-
 	for (int i = startl; i <= endl; i++) {
 		if (i > lc) {
 			break;
