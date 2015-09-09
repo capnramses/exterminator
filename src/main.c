@@ -24,14 +24,12 @@ MISSIONS
 */
 
 /* TODO
-(1)- call bt every step and display
-(2)- file change when nexti or stepi
 (3)- file selection
--- (c)ontinue
--- (i)nterrupt
--- (s)tep
--- nexti stepi
+(4) (c)ontinue
+(5) (i)nterrupt
+(later)
 -- assembly side-by-side
+-- nexti stepi
 -- memory window
 
 GDB Mode

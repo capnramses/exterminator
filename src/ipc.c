@@ -278,6 +278,7 @@ void parent_ipc (int pipes[][2], int argc, char** argv) {
 					lchange = true;
 					collecting = false;
 					stepped = true;
+				// next-in
 				} else if (c == 's') {
 					sprintf (ip_buff, "step\n");
 					lchange = true;

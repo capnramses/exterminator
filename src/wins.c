@@ -253,7 +253,8 @@ void write_title_bars () {
 	// clear a screen-wide grey bar
 	attron (COLOR_PAIR(4));
 	mvprintw (0, 0, "%236c", ' ');
-	mvprintw (0, 0, "(ESC)ape (B)reakpoint (R)un (spacebar/N)ext (W)atch (G)DB");
+	mvprintw (0, 0, "(ESC)ape (B)reakpoint (R)un (spacebar/N)ext (S)tep-in "
+		"(W)atch (G)DB");
 	mvprintw (0, 115, "by Anton Gerdelan @capnramses");
 	attroff (COLOR_PAIR(4));
 	attron (COLOR_PAIR(6));
