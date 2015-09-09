@@ -285,9 +285,17 @@ bool split_st_mi_block (const char* input, char lines[][100],
 	for (int i = 0; i < len; i++) {
 		if (input[i] == '\n') {
 			int ll = i - l_start;
-			ll = MIN (98, ll);
-			strncpy (lines[curr_line++], &input[l_start], ll);
-			lines[curr_line - 1][ll - 1] = '\0';
+			ll = MIN (81, ll);
+			// only copy comment lines
+			if (input[l_start] == '~') {
+				// and trim the ~" from the start with + 2
+				// and the \ n "\n from the end with - 4
+				ll = MAX (0, ll - 4);
+				strncpy (lines[curr_line++], &input[l_start + 2], ll);
+				lines[curr_line - 1][ll - 1] = '\0';
+			} else {
+				*num_lines = *num_lines - 1;
+			}
 			l_start = i + 1;
 		}
 	}

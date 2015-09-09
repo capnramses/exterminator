@@ -384,7 +384,9 @@ void parent_ipc (int pipes[][2], int argc, char** argv) {
 					running = false;
 					stepped = false;
 					continue;
-				} 
+				}
+				// update cursor location
+				y = line - 1;
 				log_msg ("nexted line = %i\n", line);
 				
 				// update display with new focus

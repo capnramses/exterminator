@@ -2,6 +2,9 @@
 * run command does nothing if already running (was segfaulting)
 * command line is now:
 ./exterminator target targetargs*
+* tided stack trace o/p
+* cursor location is updated to step line location during running session
+* title bar tidy up
 
 8 sept 2015 - anton
 * better title/menu bars display -- remove all '\n's from end of printws!!!

@@ -233,7 +233,7 @@ void write_stack_panel (char lines[][100], int nlines) {
 	
 	attron (COLOR_PAIR(4));
 	for (int i = 0; i < 49; i++) {
-		mvprintw (i + y, x + 1, "%100c", ' ');
+		mvprintw (i + y, x + 1, "%76c", ' ');
 	}
 	
 	int len = MAX (nlines, 49);
@@ -246,18 +246,22 @@ void write_stack_panel (char lines[][100], int nlines) {
 }
 
 void write_title_bars () {
-	char b = ' ';
+	// clear a screen-wide grey bar
+	attron (COLOR_PAIR(4));
+	mvprintw (0, 0, "%236c", ' ');
+	mvprintw (0, 0, "(ESC)ape (B)reakpoint (R)un (spacebar/N)ext (W)atch (G)DB");
+	mvprintw (0, 115, "by Anton Gerdelan @capnramses");
+	attroff (COLOR_PAIR(4));
 	attron (COLOR_PAIR(6));
-	mvprintw (0, 2, "EXTERMINATOR");
-	mvprintw (1, 127, "Behold!", b);
-	mvprintw (1, 160, "and despair!", b);
+	mvprintw (0, 96, "//EXTERMINATOR\\\\");
+	mvprintw (1, 95, "behold and despair");
 	attroff (COLOR_PAIR(6));
 	attron (COLOR_PAIR(4));
-	mvprintw (0, 0, "//");
-	mvprintw (0, 14, "\\\\ by Anton Gerdelan @capnramses                        "
-		"(B)reakpoint (R)un (spacebar/N)ext (W)atch (G)DB "
-		"%112c\n", ' ');
-	attroff (COLOR_PAIR(4));
+	mvprintw (0, 96, "//");
+	mvprintw (0, 110, "\\\\");
+	mvprintw (1, 93, "//");
+	mvprintw (1, 113, "\\\\");
+	attroff (COLOR_PAIR(6));
 	move (CURS_Y, CURS_X);
 }
 

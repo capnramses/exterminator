@@ -87,9 +87,9 @@ int main (int argc, char** argv) {
 	// whine about terminal size
 	struct winsize w;
 	ioctl (STDOUT_FILENO, TIOCGWINSZ, &w);
-	if (w.ws_row < 50 || w.ws_col < 100) {
+	if (w.ws_row < 60 || w.ws_col < 236) {
 		log_err ("your terminal is too small for //EXTERMINATOR\\\\\n"
-			"if you're in a window, try resizing to fullscreen or > 100 cols\n");
+			"if you're in a window, resize to > 236 cols and > 60 rows\n");
 		return 0;
 	}
 	
