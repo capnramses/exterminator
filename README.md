@@ -33,8 +33,8 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 * most important features working but not robust
 * starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, watch list, stack trace
-* no file change/browse yet
-* has some memory crash errors / malloc and string lengths need tidy
+* no file browser yet
+* string lengths and malloc need sanitation to crash-proof it
 
 ##building instructions
 
@@ -49,6 +49,7 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * set a break point with `b`. you will see break points displayed in the margin.
 * run debug session press `r`
 * step to the next line press `spacebar` or `n`
+* step into a function with `s`
 * add a variable to the watch list with `w`
 * type more detailed commands by opening GDB terminal `g`.
 * press `ESC` to leave GDB terminal mode
