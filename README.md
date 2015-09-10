@@ -24,15 +24,14 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 * un-set breakpoints
 * goto line button
-* step-ins with displayed file change, and stack update
-* left-hand bar with source files to switch to
+* source files browser on left hand side bar
 * side-by-side asm (later)
 * memory inspection window (later)
 
 ##status
 
 * most important features working but not robust
-* starts a debugging session, loads text of main file, allows visual breakpoints, run, next (step), gdb console, watch list, stack trace
+* starts a debugging session, loads text of main file, allows visual breakpoints, run, step, step-in, gdb console, watch list, stack trace
 * no file browser yet
 * string lengths and malloc need sanitation to crash-proof it
 
