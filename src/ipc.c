@@ -479,6 +479,12 @@ void write_child (int pipe, const char* input) {
 	write (pipe, input, len);
 }
 
+//
+// TODO TOP PRIORITY
+//
+// the (gdb) strstr test should be on the accumulated buffer, not on the
+// current read -- if it's split between buffers it will hang the reader!
+//
 long int read_child (int pipe, char* output) {
 	char tmp[MAX_OP_STR];
 	long int len = 0;
