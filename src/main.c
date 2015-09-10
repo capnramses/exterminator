@@ -12,7 +12,7 @@ GOALS (in priority order)
 
 MISSIONS
 1. super-fast text file loading and display with ncurses - MISSION ACCOMPLISHED
-2. invoke libgdb from same programme and start a session - MISSION ACCOMPLISHED
+2. invoke gdb from same programme and start a session - MISSION ACCOMPLISHED
    * perhaps use argv[1] to specify executable - DONE
 3. allow setting and unsetting of gdb breakpoints visually
    * keyboard -- PARTIAL
@@ -20,10 +20,11 @@ MISSIONS
 4. file browsing/unload/load
    * keyboard
    * mouse
-5  visual stepping/focuse of code on spacebar or sthng easy - PARTIAL
+5  visual stepping/focuse of code on spacebar or sthng easy - MISSION ACCOMPLD.
 */
 
 /* TODO
+(2)-unset breakpoints
 (3)- file selection
 (4) (c)ontinue
 (5) (i)nterrupt
@@ -31,24 +32,17 @@ MISSIONS
 -- assembly side-by-side
 -- nexti stepi
 -- memory window
-
-GDB Mode
---------
-* format strings before printing
-* scroll with spacebar?
-* move to rhs so can be longer?
+-- ?
 
 GUI Overall
 -----------
-* left/right arrows or tab do focus shift
 * display files in lhs
-* arbitrary KEY "COMMAND STRING" bindings file?
+* left/right arrows or tab do focus shift
 
 Debugging
 ---------
 * unset breakpoint with spacebar
 * change toggle() to set() and unset()
-* stack trace on rhs
 */
 
 /* IDEAS
