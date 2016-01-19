@@ -20,7 +20,6 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 
 ##major to-dos
 
-* un-set breakpoints
 * goto line button
 * source files browser on left hand side bar
 * side-by-side asm (later)
