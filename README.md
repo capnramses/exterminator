@@ -1,4 +1,4 @@
-#exterminator
+#exterminator#
 
 Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB). Written in C99.
 
