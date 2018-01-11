@@ -1,4 +1,4 @@
-#exterminator#
+# exterminator
 
 Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB). Written in C99.
 
@@ -6,7 +6,7 @@ Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB). Wri
 
 Because modern IDEs are inexcusably slow, and why can't I just have GDB with a better (Turbo C style) UI and less typing?
 
-##goals
+## goals
 
 * runs on GNU/Linux
 * interactive visual output
@@ -14,29 +14,29 @@ Because modern IDEs are inexcusably slow, and why can't I just have GDB with a b
 * runs super-fast - instant stepping, quick key commands
 * no dependencies or middleware beyond GDB and ncurses
 
-##platforms
+## platforms
 
 * GNU/Linux
 
-##major to-dos
+## major to-dos
 
 * goto line button
 * source files browser on left hand side bar
 * side-by-side asm (later)
 * memory inspection window (later)
 
-##status
+## status
 
 * most important features working but not robust
 * starts a debugging session, loads text of main file, allows visual breakpoints, run, step, step-in, gdb console, watch list, stack trace
 * no file browser yet
 * string lengths and malloc need sanitation to crash-proof it
 
-##building instructions
+## building instructions
 
 `make`
 
-##basic usage
+## basic usage
 
 * maximise your terminal window and/or reduce font size to fit more on display
 * launch with: `./exterminator target_prog [targetargs]` 
