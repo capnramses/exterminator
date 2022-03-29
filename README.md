@@ -1,10 +1,10 @@
 # exterminator
 
-Deadly ex-perimental termin-al debugger (it's an ncurses front-end for GDB). Written in C99.
+Deadly *ex*-perimental *termin*-al debugger (it's an ncurses front-end for GDB). Written in C99.
 
 ![screenshot](shots/crongscroll.png)
 
-Because modern IDEs are inexcusably slow, and why can't I just have GDB with a better (Turbo C style) UI and less typing?
+_Why can't I just have GDB with a better (Turbo C style) UI and less typing?_
 
 ## goals
 
